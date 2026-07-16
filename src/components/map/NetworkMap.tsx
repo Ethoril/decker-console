@@ -104,14 +104,29 @@ export default function NetworkMap({
   const fitted = useRef(false);
 
   // ------------------------------------------------------------ dimensions
+  const sizeRef = useRef<{ w: number; h: number } | null>(null);
   useLayoutEffect(() => {
     const el = wrapRef.current;
     if (!el) return;
-    const ro = new ResizeObserver(() => {
-      setSize({ w: el.clientWidth || 1, h: el.clientHeight || 1 });
-    });
+    const measure = () => {
+      const w = el.clientWidth || 1;
+      const h = el.clientHeight || 1;
+      const prev = sizeRef.current;
+      if (prev && (prev.w !== w || prev.h !== h)) {
+        // Rotation / redimensionnement : on préserve le centre de la vue,
+        // sinon le contenu dérive hors champ.
+        setView((v) => ({
+          ...v,
+          x: v.x + (prev.w - w) / (2 * v.scale),
+          y: v.y + (prev.h - h) / (2 * v.scale),
+        }));
+      }
+      sizeRef.current = { w, h };
+      setSize({ w, h });
+    };
+    const ro = new ResizeObserver(measure);
     ro.observe(el);
-    setSize({ w: el.clientWidth || 1, h: el.clientHeight || 1 });
+    measure();
     return () => ro.disconnect();
   }, []);
 
@@ -181,7 +196,13 @@ export default function NetworkMap({
 
   // ------------------------------------------------------------ gestes
   function onPointerDown(e: React.PointerEvent<SVGSVGElement>) {
-    svgRef.current?.setPointerCapture(e.pointerId);
+    try {
+      svgRef.current?.setPointerCapture(e.pointerId);
+    } catch {
+      // pointerId inactif (entrée synthétique / périphérique exotique) : sans
+      // capture, le geste fonctionne quand même tant que le pointeur reste
+      // au-dessus du SVG.
+    }
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     const g = gesture.current;
 

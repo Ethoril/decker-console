@@ -138,7 +138,10 @@ export default function DeckerView() {
           ) : (
             <p className="mb-2 text-xs text-ink-dim">
               Position :{' '}
-              <span className="text-neon-cyan">{currentNode?.label ?? '???'}</span>
+              <span className="text-neon-cyan">
+                {/* Le label ne se révèle qu'une fois le nœud infiltré (fog). */}
+                {currentNode && currentNode.state !== 'spotted' ? currentNode.label : '???'}
+              </span>
             </p>
           )}
           <div className="flex flex-col gap-1.5">

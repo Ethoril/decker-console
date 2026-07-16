@@ -8,13 +8,13 @@
 // La protection vient des règles RTDB (database.rules.json) + du code de session.
 
 export const firebaseConfig = {
-  apiKey: 'VOTRE_API_KEY',
-  authDomain: 'VOTRE_PROJET.firebaseapp.com',
-  databaseURL: 'https://VOTRE_PROJET-default-rtdb.europe-west1.firebasedatabase.app',
-  projectId: 'VOTRE_PROJET',
-  storageBucket: 'VOTRE_PROJET.appspot.com',
-  messagingSenderId: 'VOTRE_SENDER_ID',
-  appId: 'VOTRE_APP_ID',
+  apiKey: 'AIzaSyDKWhqVqOgvBRZ8p4dwpGoWDQPgSullm_Y',
+  authDomain: 'decker-console.firebaseapp.com',
+  databaseURL: 'https://decker-console-default-rtdb.europe-west1.firebasedatabase.app',
+  projectId: 'decker-console',
+  storageBucket: 'decker-console.firebasestorage.app',
+  messagingSenderId: '817419076123',
+  appId: '1:817419076123:web:bbf83ff85ef10b0940eebe',
 };
 
 /** true tant que la config ci-dessus n'a pas été remplacée par les vraies valeurs. */

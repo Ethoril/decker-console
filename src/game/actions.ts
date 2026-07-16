@@ -24,7 +24,9 @@ export async function performScan(code: string): Promise<number> {
     }
     await update(ref(getDb(), `sessions/${code}`), updates);
   }
-  const here = nodes[deckerNodeId]?.label ?? '???';
+  const hereNode = nodes[deckerNodeId];
+  // Le label d'un nœud seulement « spotted » n'est pas connu du decker (fog).
+  const here = hereNode && hereNode.state !== 'spotted' ? hereNode.label : '???';
   await appendLog(
     code,
     'action',
@@ -47,6 +49,7 @@ export async function moveDeckerTo(code: string, targetNodeId: string): Promise<
   if (!adjacentNodeIds(deckerNodeId, links).has(targetNodeId)) return false;
 
   await setDeckerNode(code, targetNodeId);
-  await appendLog(code, 'action', `Persona déplacé vers « ${target.label} ».`);
+  const targetLabel = target.state !== 'spotted' ? target.label : '???';
+  await appendLog(code, 'action', `Persona déplacé vers « ${targetLabel} ».`);
   return true;
 }
