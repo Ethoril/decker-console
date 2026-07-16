@@ -28,10 +28,9 @@ export function subscribeToSession(code: string, role: Role): () => void {
     });
   });
   sub('icons', (v) => useNetworkStore.setState({ icons: (v as never) ?? {} }));
-  sub('decker', (v) => {
-    const decker = (v ?? {}) as { nodeId?: string };
-    useNetworkStore.setState({ deckerNodeId: decker.nodeId ?? null });
-  });
+  sub('decker', (v) => useNetworkStore.setState({ decker: (v as never) ?? {} }));
+  sub('environment', (v) => useNetworkStore.setState({ environment: (v as never) ?? {} }));
+  sub('lastRoll', (v) => useNetworkStore.setState({ lastRoll: (v as never) ?? null }));
   sub('log', (v) => useNetworkStore.setState({ log: (v as never) ?? {} }));
 
   // Présence : posée à chaque (re)connexion au serveur RTDB.

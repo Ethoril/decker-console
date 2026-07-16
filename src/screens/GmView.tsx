@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import NetworkMap, { type MapSelection } from '../components/map/NetworkMap';
 import { ExportImportModal } from '../components/gm/ExportImportModal';
+import { GamePanel } from '../components/gm/GamePanel';
 import { IconPanel } from '../components/gm/IconPanel';
 import { NodePanel } from '../components/gm/NodePanel';
 import { PresenceDot, SideColumn, useIsShort } from '../components/ui';
@@ -28,7 +29,8 @@ const ICON_TOOLS: Partial<Record<Tool, IconKind>> = {
 export default function GmView() {
   const code = useSessionStore((s) => s.code)!;
   const leave = useSessionStore((s) => s.leave);
-  const { meta, nodes, links, icons, deckerNodeId } = useNetworkStore();
+  const { meta, nodes, links, icons, decker } = useNetworkStore();
+  const deckerNodeId = decker.nodeId ?? null;
   const short = useIsShort();
 
   const [mode, setMode] = useState<Mode>('edit');
@@ -179,13 +181,7 @@ export default function GmView() {
               </button>
             </div>
           ) : (
-            <div className="flex flex-col gap-1.5">
-              <h3 className="panel-title">Jeu</h3>
-              <p className="text-[10px] leading-4 text-ink-dim">
-                Glissez les icônes de nœud en nœud (snap au relâchement). Touchez un
-                nœud ou une icône pour les contrôles rapides.
-              </p>
-            </div>
+            <GamePanel code={code} />
           )}
         </SideColumn>
 

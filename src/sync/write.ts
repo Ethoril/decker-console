@@ -2,6 +2,8 @@ import { get, push, ref, serverTimestamp, set, update } from 'firebase/database'
 import { getDb } from '../firebase';
 import { useNetworkStore } from '../store/network';
 import type {
+  DeckerState,
+  EnvironmentState,
   IconKind,
   Link,
   LogKind,
@@ -9,6 +11,7 @@ import type {
   NetworkExport,
   NetworkNode,
   NodeState,
+  RollRecord,
 } from '../types';
 
 // Convention (cf. CDC §2) : uniquement des écritures ciblées (update/set sur
@@ -68,7 +71,8 @@ export async function updateNode(
 
 /** Supprime le nœud, ses liens et les icônes posées dessus (multi-path update). */
 export async function deleteNode(code: string, nodeId: string): Promise<void> {
-  const { links, icons, deckerNodeId } = useNetworkStore.getState();
+  const { links, icons, decker } = useNetworkStore.getState();
+  const deckerNodeId = decker.nodeId ?? null;
   const updates: Record<string, null> = {
     [`network/nodes/${nodeId}`]: null,
   };
@@ -156,6 +160,29 @@ export async function setDeckerNode(code: string, nodeId: string | null): Promis
   await update(ref(getDb(), `${sessionPath(code)}/decker`), { nodeId });
 }
 
+export async function updateDecker(
+  code: string,
+  partial: Partial<DeckerState>,
+): Promise<void> {
+  await update(ref(getDb(), `${sessionPath(code)}/decker`), partial);
+}
+
+// ------------------------------------------------------------- environnement
+
+export async function setEnvironment(
+  code: string,
+  partial: Partial<EnvironmentState>,
+): Promise<void> {
+  await update(ref(getDb(), `${sessionPath(code)}/environment`), partial);
+}
+
+// -------------------------------------------------------------------- jets
+
+/** Publie le dernier jet (miroir MJ, dé de complication inclus). */
+export async function publishRoll(code: string, roll: RollRecord): Promise<void> {
+  await set(ref(getDb(), `${sessionPath(code)}/lastRoll`), roll);
+}
+
 // --------------------------------------------------------------------- log
 
 export async function appendLog(
@@ -176,23 +203,24 @@ export async function appendLog(
 
 /** Sérialise le réseau courant (nodes, links, icons, position decker). */
 export function exportNetwork(): NetworkExport {
-  const { nodes, links, icons, deckerNodeId } = useNetworkStore.getState();
+  const { nodes, links, icons, decker } = useNetworkStore.getState();
   return {
     network: {
       nodes: Object.keys(nodes).length ? nodes : null,
       links: Object.keys(links).length ? links : null,
     },
     icons: Object.keys(icons).length ? icons : null,
-    decker: deckerNodeId ? { nodeId: deckerNodeId } : null,
+    decker: decker.nodeId ? { nodeId: decker.nodeId } : null,
   };
 }
 
-/** Remplace intégralement network + icons (+ decker) par le contenu importé. */
+/** Remplace intégralement network + icons (+ position decker) par l'import.
+ *  Les jauges du decker (mode, stun, Chance) ne sont pas touchées. */
 export async function importNetwork(code: string, data: NetworkExport): Promise<void> {
   await update(ref(getDb(), sessionPath(code)), {
     network: data.network ?? null,
     icons: data.icons ?? null,
-    decker: data.decker ?? null,
+    'decker/nodeId': data.decker?.nodeId ?? null,
   });
 }
 
@@ -201,6 +229,6 @@ export async function clearNetwork(code: string): Promise<void> {
   await update(ref(getDb(), sessionPath(code)), {
     network: null,
     icons: null,
-    decker: null,
+    'decker/nodeId': null,
   });
 }
