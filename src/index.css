@@ -1,0 +1,113 @@
+@import 'tailwindcss';
+
+@theme {
+  /* Palette néon Decker Console */
+  --color-abyss: #0a0e12;
+  --color-panel: #10161d;
+  --color-panel-2: #16202b;
+  --color-grid: #1d2a38;
+  --color-ink: #b8ccd9;
+  --color-ink-dim: #5d7285;
+  --color-neon-cyan: #2ee6ff;
+  --color-neon-cyan-dim: #157d95;
+  --color-neon-magenta: #ff2ec4;
+  --color-neon-green: #3aff8f;
+  --color-neon-amber: #ffc24d;
+  --color-neon-red: #ff3b5c;
+
+  --font-term: 'Cascadia Mono', ui-monospace, SFMono-Regular, Menlo, Consolas,
+    'Liberation Mono', monospace;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  overscroll-behavior: none;
+}
+
+body {
+  background-color: var(--color-abyss);
+  color: var(--color-ink);
+  font-family: var(--font-term);
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+input,
+textarea {
+  user-select: text;
+}
+
+/* --- Overlay portrait : le jeu se joue en paysage ------------------------ */
+.portrait-overlay {
+  display: none;
+}
+@media (orientation: portrait) {
+  .portrait-overlay {
+    display: flex;
+  }
+}
+
+/* --- Animations sobres (pas de boucle coûteuse) --------------------------- */
+@keyframes neon-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+.pulse-slow {
+  animation: neon-pulse 1.8s ease-in-out infinite;
+}
+.pulse-alert {
+  animation: neon-pulse 1.1s ease-in-out infinite;
+}
+
+/* --- Composants récurrents ------------------------------------------------ */
+.btn {
+  @apply rounded border border-grid bg-panel px-3 py-2 text-sm text-ink
+    transition-colors duration-100 select-none;
+  min-height: 40px;
+}
+.btn:not(:disabled):active {
+  @apply bg-panel-2;
+}
+.btn:disabled {
+  @apply cursor-not-allowed opacity-35;
+}
+.btn-cyan {
+  @apply border-neon-cyan-dim text-neon-cyan;
+}
+.btn-cyan.active,
+.btn-cyan[aria-pressed='true'] {
+  @apply border-neon-cyan bg-neon-cyan/10;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--color-neon-cyan) 35%, transparent);
+}
+.btn-magenta {
+  @apply border-neon-magenta/50 text-neon-magenta;
+}
+.btn-red {
+  @apply border-neon-red/60 text-neon-red;
+}
+
+.field {
+  @apply w-full rounded border border-grid bg-abyss px-2 py-1.5 text-sm text-ink
+    outline-none focus:border-neon-cyan-dim;
+}
+
+.panel-title {
+  @apply mb-2 text-[11px] tracking-[0.2em] text-ink-dim uppercase;
+}
+
+.glow-text {
+  text-shadow: 0 0 10px color-mix(in srgb, currentColor 55%, transparent);
+}
+
+/* Scrollbars discrètes */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-grid) transparent;
+}
