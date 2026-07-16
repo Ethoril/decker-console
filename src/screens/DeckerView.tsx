@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import NetworkMap, { type MapSelection } from '../components/map/NetworkMap';
 import { ICE_LABELS, NODE_TYPE_LABELS } from '../components/map/shapes';
+import { DieuDial, MonitorBoxes } from '../components/decker/Monitors';
 import { RollModal, type RollRequest } from '../components/decker/RollModal';
 import { PresenceDot, SideColumn, useIsShort } from '../components/ui';
 import { PERSONA } from '../data/persona';
@@ -19,8 +20,22 @@ import {
   setConnectionMode,
   type HackApproach,
 } from '../game/actions';
+import {
+  MONITORS,
+  applyDeckerAttack,
+  applyEscape,
+  applyRepair,
+  checkSurveillance,
+  reboot,
+} from '../game/threat';
 import { adjacentNodeIds } from '../game/graph';
-import { infiltrationPool, perceptionPool } from '../game/pools';
+import {
+  cybercombatPool,
+  escapePool,
+  infiltrationPool,
+  perceptionPool,
+  repairPool,
+} from '../game/pools';
 import { deckerDefaults, useNetworkStore } from '../store/network';
 import { useSessionStore } from '../store/session';
 import type { ConnectionMode, Link, MatrixIcon, NetworkNode } from '../types';
@@ -41,7 +56,19 @@ export default function DeckerView() {
   const luck = decker.luck ?? deckerDefaults.luck;
   const stun = decker.stun ?? deckerDefaults.stun;
   const physical = decker.physical ?? deckerDefaults.physical;
+  const deckCondition = decker.deckCondition ?? deckerDefaults.deckCondition;
+  const firewallPenalty = decker.firewallPenalty ?? deckerDefaults.firewallPenalty;
+  const trapped = decker.trapped ?? false;
+  const rebootCountdown = decker.rebootCountdown ?? 0;
+  const convergence = decker.convergence ?? false;
+  const debuffs = decker.debuffs ?? {};
+  const programs = decker.programs ?? {};
   const deckerNodeId = decker.nodeId ?? null;
+
+  const deckDown = deckCondition >= MONITORS.deck;
+  const rebooting = rebootCountdown > 0;
+  const actionsLocked = rebooting || deckDown;
+  const successPenalty = debuffs.bloqueuse ? 1 : 0;
 
   // ------------------------------------------------------------ fog of war
   const { visibleNodes, visibleLinks, visibleIcons } = useMemo(() => {
@@ -73,7 +100,6 @@ export default function DeckerView() {
 
   const move = selectedNodeId ? canMoveTo(selectedNodeId) : { ok: false, reason: null };
 
-  // Cible de hack : nœud sélectionné, visible, adjacent OU nœud courant.
   const hackTargetId =
     selectedNodeId &&
     selectedNode &&
@@ -81,15 +107,22 @@ export default function DeckerView() {
       ? selectedNodeId
       : null;
 
+  // Cible de cybercombat : icône visible sur le nœud courant ou adjacent.
+  const attackTargetId =
+    selectedIconId &&
+    selectedIcon &&
+    (selectedIcon.nodeId === deckerNodeId || adjacent.has(selectedIcon.nodeId))
+      ? selectedIconId
+      : null;
+
   // ------------------------------------------------------------- actions
-  const startScan = () => {
+  const startScan = () =>
     setRoll({
       action: 'Perception matricielle — scan',
       lines: perceptionPool(mode),
       withComplication: false,
-      apply: (successes) => applyScan(code, successes),
+      apply: (s) => applyScan(code, s),
     });
-  };
 
   const startIceAnalysis = () => {
     if (!selectedIconId) return;
@@ -97,7 +130,7 @@ export default function DeckerView() {
       action: 'Perception matricielle — analyse de GLACE',
       lines: perceptionPool(mode),
       withComplication: false,
-      apply: (successes) => applyIceAnalysis(code, selectedIconId, successes),
+      apply: (s) => applyIceAnalysis(code, selectedIconId, s),
     });
   };
 
@@ -110,9 +143,39 @@ export default function DeckerView() {
       action: `Hack (${APPROACH_LABELS[approach]}) — ${knownLabel(hackTargetId)}`,
       lines: infiltrationPool(target, mode, environment),
       withComplication: true,
-      apply: (successes) => applyHack(code, hackTargetId, approach, successes),
+      successPenalty,
+      apply: (s) => applyHack(code, hackTargetId, approach, s),
     });
   };
+
+  const startAttack = () => {
+    if (!attackTargetId) return;
+    const icon = icons[attackTargetId];
+    setRoll({
+      action: `Cybercombat — ${icon?.label ?? 'cible'}`,
+      lines: cybercombatPool(mode),
+      withComplication: true,
+      successPenalty,
+      apply: (s) => applyDeckerAttack(code, attackTargetId, s),
+    });
+  };
+
+  const startEscape = () =>
+    setRoll({
+      action: 'Fuite — Pot de colle',
+      lines: escapePool(mode),
+      withComplication: true,
+      successPenalty,
+      apply: (s) => applyEscape(code, s),
+    });
+
+  const startRepair = () =>
+    setRoll({
+      action: 'Réparation du deck',
+      lines: repairPool(),
+      withComplication: false,
+      apply: (s) => applyRepair(code, s),
+    });
 
   const doMove = async () => {
     if (selectedNodeId && (await moveDeckerTo(code, selectedNodeId))) setSelection(null);
@@ -128,6 +191,13 @@ export default function DeckerView() {
     if (!deckerNodeId) return;
     const text = await controlDevice(code, deckerNodeId);
     if (text) setRevealedInfo({ title: 'Périphérique', text });
+  };
+
+  const doReboot = () => {
+    if (trapped) return;
+    if (window.confirm('Rebooter le deck ? Surveillance purgée, console inactive 3 tours.')) {
+      void reboot(code);
+    }
   };
 
   const changeMode = (m: ConnectionMode) => {
@@ -160,18 +230,41 @@ export default function DeckerView() {
         <span className="text-xs tracking-[0.2em] text-neon-cyan uppercase">Decker</span>
         <span className="glow-text text-sm tracking-[0.25em] text-neon-cyan">{code}</span>
         <PresenceDot connected={meta?.gmConnected ?? false} label="MJ" />
-        <button className="btn ml-auto px-2 py-1 text-xs" onClick={leave}>
+        {trapped && (
+          <span className="pulse-alert text-xs text-neon-red">⛓ PIÉGÉ</span>
+        )}
+        <button
+          className="btn ml-auto px-2 py-1 text-xs"
+          disabled={trapped}
+          title={trapped ? 'Pot de colle : déconnexion impossible' : undefined}
+          onClick={leave}
+        >
           Se déconnecter
         </button>
       </header>
 
+      {/* Bandeau deck détruit */}
+      {deckDown && (
+        <div className="pulse-alert flex shrink-0 items-center justify-center gap-3 border-b border-neon-red bg-neon-red/15 px-3 py-1 text-xs text-neon-red">
+          DECK HS — 1 Karma pour réparation immédiate
+          <button className="btn btn-red px-2 py-0.5 text-[11px]" onClick={startRepair}>
+            🔧 Réparer (Électronique + Logique)
+          </button>
+        </div>
+      )}
+
       <div className="relative flex min-h-0 flex-1">
         {/* Colonne d'état */}
-        <SideColumn side="left" title="État" short={short} width="w-52">
+        <SideColumn side="left" title="État" short={short} width="w-56">
           <h3 className="panel-title">Persona</h3>
           <div className="mb-2 rounded border border-grid bg-panel-2 p-2 text-xs leading-5">
             <p className="text-neon-cyan">{PERSONA.name}</p>
-            <p className="text-ink-dim">Deck : {PERSONA.deck.name}</p>
+            <p className="text-ink-dim">
+              {PERSONA.deck.name}
+              {firewallPenalty > 0 && (
+                <span className="text-neon-red"> · FW −{firewallPenalty}</span>
+              )}
+            </p>
           </div>
 
           {/* Mode de connexion */}
@@ -185,6 +278,7 @@ export default function DeckerView() {
                   key={m}
                   className={`btn px-1 py-1.5 text-[11px] ${mode === m ? 'btn-cyan active' : ''}`}
                   aria-pressed={mode === m}
+                  disabled={actionsLocked}
                   onClick={() => changeMode(m)}
                 >
                   {MODE_LABELS[m]}
@@ -193,28 +287,48 @@ export default function DeckerView() {
             </div>
           </div>
 
-          {/* Jauges (moniteurs complets en Phase 3) */}
-          <div className="mb-2 rounded border border-grid bg-panel-2 p-2 text-xs leading-5">
+          {/* Moniteurs */}
+          <div className="mb-2 rounded border border-grid bg-panel-2 p-2">
+            <MonitorBoxes label={`Deck (${PERSONA.deck.name.split(' ').pop()})`} filled={deckCondition} total={MONITORS.deck} color="bg-neon-cyan" />
+            <MonitorBoxes label="Étourdissant" filled={stun} total={MONITORS.stun} color="bg-neon-amber" />
+            <MonitorBoxes label="Physique" filled={physical} total={MONITORS.physical} color="bg-neon-red" />
+            {deckCondition > 0 && !deckDown && (
+              <button className="btn mt-1 w-full px-1 py-0.5 text-[10px]" onClick={startRepair}>
+                🔧 Réparer le deck
+              </button>
+            )}
+          </div>
+
+          {/* Programmes & debuffs */}
+          <div className="mb-2 rounded border border-grid bg-panel-2 p-2 text-[11px] leading-5">
+            {PERSONA.programs.map((p) => {
+              const crashed = programs[p.id as 'marteau' | 'discretion'] === 'crashed';
+              return (
+                <p key={p.id} className={crashed ? 'text-neon-red line-through' : ''}>
+                  ▸ {p.id === 'marteau' ? 'Marteau' : 'Discrétion'}{' '}
+                  <span className="text-ink-dim">({p.effect})</span>
+                  {crashed && ' — PLANTÉ'}
+                </p>
+              );
+            })}
+            {Object.keys(debuffs).filter((k) => debuffs[k]).length > 0 && (
+              <p className="text-neon-red">
+                Debuffs : {Object.keys(debuffs).filter((k) => debuffs[k]).join(', ')}
+              </p>
+            )}
             <p>
               🍀 Chance : <span className="text-neon-green">{luck}</span>/{PERSONA.chance}
             </p>
-            <p>
-              Étourdissant : <span className={stun > 0 ? 'text-neon-amber' : ''}>{stun}</span>
-            </p>
-            <p>
-              Physique : <span className={physical > 0 ? 'text-neon-red' : ''}>{physical}</span>
-            </p>
-            <p className="text-[10px] text-ink-dim">Moniteurs complets — Phase 3</p>
           </div>
 
-          <div className="rounded border border-grid bg-panel-2 p-2 text-center">
-            <p className="text-[10px] tracking-widest text-ink-dim uppercase">Signal DIEU</p>
-            <p className="mt-1 text-lg tracking-[0.3em] text-neon-red opacity-60">▓▓▓</p>
-          </div>
+          <DieuDial
+            surveillance={decker.surveillance ?? 0}
+            revealed={decker.surveillanceRevealed ?? false}
+          />
         </SideColumn>
 
         {/* Carte avec fog of war */}
-        <main className="min-w-0 flex-1">
+        <main className="relative min-w-0 flex-1">
           <NetworkMap
             nodes={visibleNodes}
             links={visibleLinks}
@@ -235,6 +349,18 @@ export default function DeckerView() {
               setApproachPick(false);
             }}
           />
+          {/* Console inactive pendant le reboot */}
+          {rebooting && (
+            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-abyss/85">
+              <p className="pulse-slow glow-text text-2xl tracking-[0.3em] text-neon-amber">
+                REBOOT
+              </p>
+              <p className="text-sm text-ink-dim">
+                Deck inactif — {rebootCountdown} tour{rebootCountdown > 1 ? 's' : ''} restant
+                {rebootCountdown > 1 ? 's' : ''}
+              </p>
+            </div>
+          )}
         </main>
 
         {/* Colonne d'actions */}
@@ -254,17 +380,16 @@ export default function DeckerView() {
           <div className="flex flex-col gap-1.5">
             <button
               className="btn btn-cyan text-xs"
-              disabled={!deckerNodeId}
+              disabled={actionsLocked || !deckerNodeId}
               onClick={startScan}
             >
               ◈ Scanner les environs
             </button>
 
-            {/* Hacker : choix d'approche */}
             {!approachPick ? (
               <button
                 className="btn btn-cyan text-xs"
-                disabled={!hackTargetId}
+                disabled={actionsLocked || !hackTargetId}
                 onClick={() => setApproachPick(true)}
               >
                 ⚡ Hacker {hackTargetId ? `« ${knownLabel(hackTargetId)} »` : ''}
@@ -283,34 +408,64 @@ export default function DeckerView() {
               </div>
             )}
 
-            <button className="btn btn-cyan text-xs" disabled={!move.ok} onClick={() => void doMove()}>
+            <button
+              className="btn btn-red text-xs"
+              disabled={actionsLocked || !attackTargetId}
+              onClick={startAttack}
+            >
+              ⚔ Attaquer {attackTargetId ? `« ${icons[attackTargetId]?.label} »` : ''}
+            </button>
+
+            <button className="btn btn-cyan text-xs" disabled={actionsLocked || !move.ok} onClick={() => void doMove()}>
               → Se déplacer ici
             </button>
             {move.reason && <p className="text-[10px] leading-4 text-neon-amber">{move.reason}</p>}
 
             {selectedIcon && !selectedIcon.revealed && (
-              <button className="btn btn-cyan text-xs" onClick={startIceAnalysis}>
+              <button className="btn btn-cyan text-xs" disabled={actionsLocked} onClick={startIceAnalysis}>
                 ◇ Analyser la GLACE
               </button>
             )}
 
             <button
               className="btn text-xs"
-              disabled={!currentNode || currentNode.marks < 2 || !currentNode.paydata}
+              disabled={actionsLocked || !currentNode || currentNode.marks < 2 || !currentNode.paydata}
               onClick={() => void doReadPaydata()}
             >
               ▤ Lire le paydata (≥ 2 Marks)
             </button>
             <button
               className="btn text-xs"
-              disabled={!currentNode || currentNode.marks < 3 || !currentNode.deviceInfo}
+              disabled={actionsLocked || !currentNode || currentNode.marks < 3 || !currentNode.deviceInfo}
               onClick={() => void doControlDevice()}
             >
               ⌘ Contrôler le périphérique (≥ 3 Marks)
             </button>
+
+            <hr className="my-1 border-grid" />
+
+            <button
+              className="btn text-xs"
+              disabled={actionsLocked || !deckerNodeId}
+              onClick={() => void checkSurveillance(code)}
+            >
+              👁 Vérifier la Surveillance (1 tour)
+            </button>
+            {trapped && (
+              <button className="btn btn-red text-xs" disabled={actionsLocked} onClick={startEscape}>
+                ⛓ S'arracher au Pot de colle
+              </button>
+            )}
+            <button
+              className="btn text-xs"
+              disabled={rebooting || trapped}
+              title={trapped ? 'Pot de colle : reboot impossible' : undefined}
+              onClick={doReboot}
+            >
+              ⟳ Rebooter (Surveillance → 0, 3 tours)
+            </button>
           </div>
 
-          {/* Contenu révélé (paydata / périphérique) */}
           {revealedInfo && (
             <div className="mt-3 rounded border border-neon-green/40 bg-panel-2 p-2 text-xs leading-5">
               <div className="flex items-center justify-between">
@@ -323,7 +478,6 @@ export default function DeckerView() {
             </div>
           )}
 
-          {/* Info du nœud sélectionné, filtrée selon son état */}
           {selectedNode && (
             <div className="mt-3 rounded border border-grid bg-panel-2 p-2 text-xs leading-5">
               <h4 className="panel-title">Nœud</h4>
@@ -339,9 +493,7 @@ export default function DeckerView() {
                   <p className="text-ink-dim">Sécurité : {selectedNode.security}</p>
                   <p className="text-ink-dim">Marks : {selectedNode.marks}/4</p>
                   {selectedNode.marks > 0 && (
-                    <p className="text-[10px] text-ink-dim">
-                      {MARK_RIGHTS[selectedNode.marks]}
-                    </p>
+                    <p className="text-[10px] text-ink-dim">{MARK_RIGHTS[selectedNode.marks]}</p>
                   )}
                   {selectedNode.state === 'alerted' && (
                     <p className="text-neon-red">⚠ EN ALERTE</p>
@@ -369,7 +521,7 @@ export default function DeckerView() {
         </SideColumn>
       </div>
 
-      {/* Tiroir de log (bottom sheet, style terminal) */}
+      {/* Tiroir de log */}
       <div className="shrink-0 border-t border-grid bg-panel">
         <button
           className="flex h-7 w-full items-center gap-2 px-3 text-[10px] tracking-[0.2em] text-ink-dim uppercase"
@@ -383,7 +535,10 @@ export default function DeckerView() {
               <p className="text-ink-dim">— aucun événement —</p>
             ) : (
               logEntries.map((e, i) => (
-                <p key={i} className="text-neon-green/80">
+                <p
+                  key={i}
+                  className={e.kind === 'alert' ? 'text-neon-red' : 'text-neon-green/80'}
+                >
                   <span className="text-ink-dim">
                     {new Date(e.ts).toLocaleTimeString('fr-FR')}{' '}
                   </span>
@@ -396,6 +551,20 @@ export default function DeckerView() {
       </div>
 
       {roll && <RollModal code={code} request={roll} onClose={() => setRoll(null)} />}
+
+      {/* Convergence du DIEU : plein écran rouge */}
+      {convergence && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-[#3a0510]/95">
+          <p className="pulse-alert glow-text text-4xl tracking-[0.25em] text-neon-red">
+            LE DIEU CONVERGE
+          </p>
+          <p className="max-w-md text-center text-sm text-neon-red/80">
+            Position physique compromise. Éjection forcée de la Matrice.
+            <br />
+            Le MJ reprend la main.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

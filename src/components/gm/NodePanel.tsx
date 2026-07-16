@@ -1,4 +1,6 @@
 import { NODE_TYPE_LABELS } from '../map/shapes';
+import { SECURITY_TABLE } from '../../data/security';
+import { triggerCountermeasure } from '../../game/threat';
 import { deleteNode, setDeckerNode, updateNode } from '../../sync/write';
 import type { NetworkNode, NodeState, NodeType } from '../../types';
 import { CommitField, NumberField, SelectField } from './fields';
@@ -98,6 +100,25 @@ export function NodePanel({
             onCommit={(v) => patch({ deviceInfo: v || null })}
           />
         </>
+      )}
+
+      {/* Contre-mesure du niveau de sécurité (mode Jeu, CDC §3.6) */}
+      {mode === 'game' && (
+        <div className="mb-2">
+          <button
+            className="btn btn-red w-full text-xs"
+            disabled={node.security <= 2}
+            onClick={() => {
+              if (window.confirm(`Déclencher : ${SECURITY_TABLE[node.security]?.countermeasure} ?`))
+                void triggerCountermeasure(code, nodeId);
+            }}
+          >
+            ☢ Contre-mesure (niv. {node.security})
+          </button>
+          <p className="mt-1 text-[10px] leading-4 text-ink-dim">
+            {SECURITY_TABLE[node.security]?.countermeasure ?? '—'}
+          </p>
+        </div>
       )}
 
       <button

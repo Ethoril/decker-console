@@ -44,23 +44,44 @@ export interface MatrixIcon {
   visibleToPlayer: boolean;
   label: string;
   condition: number; // défaut 6
+  /** Hacker ennemi : réserves libres saisies par le MJ (CDC §4.3). */
+  atkPool?: number;
+  defPool?: number;
 }
 
 export type ConnectionMode = 'AR' | 'VR' | 'HOTSIM';
 
-/** Sous-arbre decker/ — Phase 2 : position, mode, jauges de base, Chance. */
+export type ProgramState = 'active' | 'crashed';
+
+/** Sous-arbre decker/ — Phases 2+3 : position, mode, moniteurs, menace. */
 export interface DeckerState {
   nodeId?: string | null;
   mode?: ConnectionMode; // défaut AR
-  stun?: number; // cases étourdissantes cochées (moniteur complet en Phase 3)
+  stun?: number; // cases étourdissantes cochées
   physical?: number; // cases physiques cochées
+  deckCondition?: number; // 0..9 cases cochées (Cyber-5)
+  firewallPenalty?: number; // cumul GLACE Acide (durée scène)
   luck?: number; // points de Chance restants (init 2)
+  programs?: { marteau?: ProgramState; discretion?: ProgramState };
+  debuffs?: Record<string, boolean>; // ex. { bloqueuse: true }
+  surveillance?: number; // 0..3 — JAUGE DIEU, jamais affichée au joueur sans action
+  surveillanceRevealed?: boolean; // 10 s après « Vérifier », puis retombe
+  rebootCountdown?: number; // > 0 = deck inactif
+  trapped?: boolean; // Pot de colle actif → déconnexion interdite
+  convergence?: boolean; // séquence DIEU en cours (plein écran rouge joueur)
 }
 
-/** Sous-arbre environment/ — malus d'environnement (CDC §2). */
+/** Sous-arbre environment/ — malus d'environnement + buff système (CDC §2). */
 export interface EnvironmentState {
   noise?: 0 | 2 | 3 | 4;
   wifiDistance?: 0 | 2 | 4;
+  /** « +N au prochain jet du système » (alarme silencieuse) — consommé au jet. */
+  systemBuff?: number;
+}
+
+/** Sous-arbre countdowns/ — « équipe physique dans N tours » (palier 10). */
+export interface CountdownsState {
+  intervention?: number | null;
 }
 
 /** Une ligne du composeur de réserve, désactivable individuellement. */

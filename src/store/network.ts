@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type {
+  CountdownsState,
   DeckerState,
   EnvironmentState,
   LogEntry,
@@ -18,6 +19,7 @@ interface NetworkStore {
   icons: Record<string, MatrixIcon>;
   decker: DeckerState;
   environment: EnvironmentState;
+  countdowns: CountdownsState;
   lastRoll: RollRecord | null;
   log: Record<string, LogEntry>;
   reset: () => void;
@@ -30,6 +32,7 @@ const empty = {
   icons: {},
   decker: {} as DeckerState,
   environment: {} as EnvironmentState,
+  countdowns: {} as CountdownsState,
   lastRoll: null,
   log: {},
 };
@@ -44,5 +47,11 @@ export const deckerDefaults = {
   mode: 'AR' as const,
   stun: 0,
   physical: 0,
+  deckCondition: 0,
+  firewallPenalty: 0,
   luck: 2,
+  surveillance: 0,
+  rebootCountdown: 0,
+  trapped: false,
+  convergence: false,
 };

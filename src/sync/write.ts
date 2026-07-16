@@ -176,6 +176,12 @@ export async function setEnvironment(
   await update(ref(getDb(), `${sessionPath(code)}/environment`), partial);
 }
 
+// -------------------------------------------------------------- countdowns
+
+export async function setIntervention(code: string, value: number | null): Promise<void> {
+  await update(ref(getDb(), `${sessionPath(code)}/countdowns`), { intervention: value });
+}
+
 // -------------------------------------------------------------------- jets
 
 /** Publie le dernier jet (miroir MJ, dé de complication inclus). */

@@ -13,6 +13,8 @@ export interface RollRequest {
   lines: PoolLine[];
   /** true pour les tests de Hacking : lance le dé de complication (MJ). */
   withComplication: boolean;
+  /** Succès ignorés (GLACE Bloqueuse : « ignorer 1 succès »). */
+  successPenalty?: number;
   /** Applique l'effet du jet et retourne le résumé (outcome). */
   apply: (successes: number) => Promise<string>;
 }
@@ -40,7 +42,8 @@ export function RollModal({
 
   const pool = poolTotal(lines);
   const successOn: 4 | 5 = luckOn ? 4 : 5;
-  const successes = dice ? countSuccesses(dice, successOn) : 0;
+  const penalty = request.successPenalty ?? 0;
+  const successes = dice ? Math.max(0, countSuccesses(dice, successOn) - penalty) : 0;
 
   const toggleLine = (id: string) =>
     setLines((ls) => ls.map((l) => (l.id === id ? { ...l, enabled: !l.enabled } : l)));
@@ -157,6 +160,11 @@ export function RollModal({
               <span className="glow-text text-xl text-neon-green">{successes}</span>{' '}
               succès sur {pool}D ({successOn}+)
             </p>
+            {penalty > 0 && (
+              <p className="text-center text-[10px] text-neon-red">
+                Bloqueuse : {penalty} succès ignoré{penalty > 1 ? 's' : ''}
+              </p>
+            )}
             <button
               className="btn text-xs"
               disabled={rerolled || busy}

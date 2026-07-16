@@ -1,9 +1,19 @@
 import { PERSONA } from '../../data/persona';
 import { MODE_LABELS, rechargeLuck } from '../../game/actions';
+import {
+  MONITORS,
+  dumpshock,
+  endConvergence,
+  nextTurn,
+  reboot,
+  setIntervention,
+  setSurveillance,
+  triggerConvergence,
+} from '../../game/threat';
 import { deckerDefaults, useNetworkStore } from '../../store/network';
 import { setEnvironment, updateDecker } from '../../sync/write';
-import type { EnvironmentState } from '../../types';
-import { NumberField, SelectField } from './fields';
+import type { EnvironmentState, ProgramState } from '../../types';
+import { NumberField, SelectField, ToggleField } from './fields';
 
 const NOISE_OPTIONS: Array<[string, string]> = [
   ['0', 'Nul (0)'],
@@ -17,16 +27,109 @@ const DISTANCE_OPTIONS: Array<[string, string]> = [
   ['4', 'Longue (−4)'],
 ];
 
-/** Panneau MJ de pilotage Phase 2 : environnement, jauges decker, dernier jet. */
+/** Panneau MJ de pilotage : Surveillance/DIEU, tours, environnement, decker. */
 export function GamePanel({ code }: { code: string }) {
-  const { decker, environment, lastRoll } = useNetworkStore();
+  const { decker, environment, countdowns, lastRoll } = useNetworkStore();
   const stun = decker.stun ?? deckerDefaults.stun;
   const physical = decker.physical ?? deckerDefaults.physical;
+  const deckCondition = decker.deckCondition ?? deckerDefaults.deckCondition;
+  const firewallPenalty = decker.firewallPenalty ?? deckerDefaults.firewallPenalty;
   const luck = decker.luck ?? deckerDefaults.luck;
+  const surveillance = decker.surveillance ?? 0;
+  const rebootCountdown = decker.rebootCountdown ?? 0;
+  const systemBuff = environment.systemBuff ?? 0;
+  const intervention = countdowns.intervention ?? null;
+  const programs = decker.programs ?? {};
+  const debuffs = decker.debuffs ?? {};
+
+  const doConvergence = () => {
+    const raw = window.prompt('Le DIEU converge — dégâts au deck (valeur MJ) :', '4');
+    if (raw === null) return;
+    void triggerConvergence(code, Math.max(0, Number(raw) || 0));
+  };
+
+  const toggleProgram = (id: 'marteau' | 'discretion') => {
+    const next: ProgramState = (programs[id] ?? 'active') === 'active' ? 'crashed' : 'active';
+    void updateDecker(code, { programs: { ...programs, [id]: next } });
+  };
 
   return (
     <div className="flex flex-col gap-1.5">
-      <h3 className="panel-title">Environnement</h3>
+      {/* --- Surveillance / DIEU --- */}
+      <h3 className="panel-title">Surveillance (DIEU)</h3>
+      <div className="flex items-center gap-2">
+        <button
+          className="btn px-3 py-1"
+          disabled={surveillance <= 0}
+          onClick={() => void setSurveillance(code, surveillance - 1)}
+        >
+          −
+        </button>
+        <span
+          className={`min-w-10 text-center text-lg ${
+            surveillance >= 3 ? 'glow-text text-neon-red' : 'text-neon-amber'
+          }`}
+        >
+          {surveillance}/3
+        </span>
+        <button
+          className="btn px-3 py-1"
+          disabled={surveillance >= 3}
+          onClick={() => void setSurveillance(code, surveillance + 1)}
+        >
+          +
+        </button>
+      </div>
+      {decker.convergence ? (
+        <button className="btn btn-red text-xs" onClick={() => void endConvergence(code)}>
+          Fin de la séquence DIEU
+        </button>
+      ) : (
+        <button
+          className="btn btn-red text-xs"
+          disabled={surveillance < 3}
+          onClick={doConvergence}
+        >
+          ☠ LE DIEU CONVERGE
+        </button>
+      )}
+
+      {/* --- Tours --- */}
+      <h3 className="panel-title mt-2">Tours</h3>
+      <button className="btn btn-cyan text-xs" onClick={() => void nextTurn(code)}>
+        ▶ Tour suivant
+      </button>
+      <p className="text-[10px] text-ink-dim">
+        Reboot : {rebootCountdown > 0 ? `${rebootCountdown} tour(s)` : '—'} · Intervention :{' '}
+        {intervention === null ? '—' : `${intervention} tour(s)`}
+        {systemBuff > 0 && (
+          <span className="text-neon-amber"> · buff système +{systemBuff}</span>
+        )}
+      </p>
+      <div className="grid grid-cols-2 gap-1">
+        <button className="btn text-[11px]" onClick={() => void dumpshock(code)}>
+          ⚡ Dumpshock
+        </button>
+        <button className="btn text-[11px]" onClick={() => void reboot(code, true)}>
+          ⟳ Reboot forcé
+        </button>
+        <button
+          className="btn text-[11px]"
+          onClick={() => void setIntervention(code, 10)}
+        >
+          ⏱ Intervention 10
+        </button>
+        <button
+          className="btn text-[11px]"
+          disabled={intervention === null}
+          onClick={() => void setIntervention(code, null)}
+        >
+          ⏱ Annuler
+        </button>
+      </div>
+
+      {/* --- Environnement --- */}
+      <h3 className="panel-title mt-2">Environnement</h3>
       <SelectField
         label="Bruit"
         value={String(environment.noise ?? 0)}
@@ -46,29 +149,70 @@ export function GamePanel({ code }: { code: string }) {
         }
       />
 
+      {/* --- Decker --- */}
       <h3 className="panel-title mt-2">Decker</h3>
       <p className="text-xs text-ink-dim">
         Mode : <span className="text-neon-cyan">{MODE_LABELS[decker.mode ?? 'AR']}</span> · 🍀{' '}
         {luck}/{PERSONA.chance}
+        {decker.trapped && <span className="text-neon-red"> · PIÉGÉ</span>}
       </p>
+      <NumberField
+        label={`Deck (${deckCondition}/${MONITORS.deck})`}
+        value={deckCondition}
+        min={0}
+        max={MONITORS.deck}
+        onChange={(v) => void updateDecker(code, { deckCondition: v })}
+      />
       <NumberField
         label="Étourdissant"
         value={stun}
         min={0}
-        max={20}
+        max={MONITORS.stun}
         onChange={(v) => void updateDecker(code, { stun: v })}
       />
       <NumberField
         label="Physique"
         value={physical}
         min={0}
-        max={20}
+        max={MONITORS.physical}
         onChange={(v) => void updateDecker(code, { physical: v })}
       />
+      <NumberField
+        label="Pénalité Firewall (Acide)"
+        value={firewallPenalty}
+        min={0}
+        max={PERSONA.deck.firewall}
+        onChange={(v) => void updateDecker(code, { firewallPenalty: v })}
+      />
+      <ToggleField
+        label="Piégé (Pot de colle)"
+        value={decker.trapped ?? false}
+        onChange={(v) => void updateDecker(code, { trapped: v })}
+      />
+      <ToggleField
+        label="Debuff Bloqueuse (−1 succès)"
+        value={debuffs.bloqueuse ?? false}
+        onChange={(v) => void updateDecker(code, { debuffs: { ...debuffs, bloqueuse: v } })}
+      />
+      <div className="grid grid-cols-2 gap-1">
+        <button
+          className={`btn text-[11px] ${(programs.marteau ?? 'active') === 'crashed' ? 'btn-red' : ''}`}
+          onClick={() => toggleProgram('marteau')}
+        >
+          Marteau {(programs.marteau ?? 'active') === 'crashed' ? '✗' : '✓'}
+        </button>
+        <button
+          className={`btn text-[11px] ${(programs.discretion ?? 'active') === 'crashed' ? 'btn-red' : ''}`}
+          onClick={() => toggleProgram('discretion')}
+        >
+          Discrétion {(programs.discretion ?? 'active') === 'crashed' ? '✗' : '✓'}
+        </button>
+      </div>
       <button className="btn text-xs" onClick={() => void rechargeLuck(code)}>
         🍀 Recharger la Chance ({PERSONA.chance})
       </button>
 
+      {/* --- Dernier jet --- */}
       <h3 className="panel-title mt-2">Dernier jet</h3>
       {!lastRoll ? (
         <p className="text-[10px] text-ink-dim">— aucun jet —</p>
@@ -99,8 +243,17 @@ export function GamePanel({ code }: { code: string }) {
           {lastRoll.complication > 0 && (
             <p className={lastRoll.complication === 1 ? 'glow-text text-neon-red' : 'text-ink-dim'}>
               Dé de complication : {lastRoll.complication}
-              {lastRoll.complication === 1 ? ' — ⚠ COMPLICATION (+1 Surveillance ?)' : ''}
+              {lastRoll.complication === 1 ? ' — ⚠ COMPLICATION' : ''}
             </p>
+          )}
+          {lastRoll.complication === 1 && (
+            <button
+              className="btn btn-red mt-1 w-full text-[11px]"
+              disabled={surveillance >= 3}
+              onClick={() => void setSurveillance(code, surveillance + 1)}
+            >
+              Valider +1 Surveillance
+            </button>
           )}
           <details className="mt-1">
             <summary className="cursor-pointer text-[10px] text-ink-dim">

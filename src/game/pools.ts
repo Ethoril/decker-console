@@ -66,6 +66,40 @@ export function perceptionPool(mode: ConnectionMode): PoolLine[] {
   ];
 }
 
+/** Cybercombat — attaque (CDC §3.2). */
+export function cybercombatPool(mode: ConnectionMode): PoolLine[] {
+  return [
+    line('hacking', 'Hacking', PERSONA.hacking),
+    line('spec', 'Spécialisation cybercombat', PERSONA.specCybercombat),
+    line('logique', 'Logique', PERSONA.logique),
+    line('cybercombattant', 'Cybercombattant', PERSONA.traits.cybercombattant),
+    ...modeLines(mode),
+  ];
+}
+
+/** Cybercombat — défense (jet automatique) : Logique + Firewall − Acide. */
+export function defensePoolSize(firewallPenalty: number): number {
+  return PERSONA.logique + Math.max(0, PERSONA.deck.firewall - firewallPenalty);
+}
+
+/** Réparation du deck : Électronique + Logique, 1 case/succès (CDC §3.5). */
+export function repairPool(): PoolLine[] {
+  return [
+    line('electronique', 'Électronique', PERSONA.electronique),
+    line('logique', 'Logique', PERSONA.logique),
+  ];
+}
+
+/** Fuite du Pot de colle : test de Hacking (CDC §3.7). */
+export function escapePool(mode: ConnectionMode): PoolLine[] {
+  return [
+    line('hacking', 'Hacking', PERSONA.hacking),
+    line('logique', 'Logique', PERSONA.logique),
+    line('bonCodeur', 'Bon codeur (hors cybercombat)', PERSONA.traits.bonCodeur),
+    ...modeLines(mode),
+  ];
+}
+
 export function poolTotal(lines: PoolLine[]): number {
   return Math.max(
     0,

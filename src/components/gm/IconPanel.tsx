@@ -1,4 +1,7 @@
+import { useState } from 'react';
 import { ICE_LABELS } from '../map/shapes';
+import { ICE_EFFECTS, ICE_STATS } from '../../data/ice';
+import { iconAttack } from '../../game/threat';
 import { deleteIcon, updateIcon } from '../../sync/write';
 import type { IceType, IconKind, MatrixIcon } from '../../types';
 import { CommitField, NumberField, SelectField, ToggleField } from './fields';
@@ -23,6 +26,13 @@ export function IconPanel({
   onDeleted: () => void;
 }) {
   const patch = (partial: Partial<MatrixIcon>) => void updateIcon(code, iconId, partial);
+  const [attackResult, setAttackResult] = useState<string | null>(null);
+  const effect = icon.kind === 'ice' && icon.iceType ? ICE_EFFECTS[icon.iceType] : null;
+
+  const doAttack = async () => {
+    setAttackResult('…');
+    setAttackResult(await iconAttack(code, iconId));
+  };
 
   return (
     <div>
@@ -64,13 +74,51 @@ export function IconPanel({
       />
 
       {mode === 'game' && (
-        <NumberField
-          label="Condition"
-          value={icon.condition}
-          min={0}
-          max={12}
-          onChange={(condition) => patch({ condition })}
-        />
+        <>
+          <NumberField
+            label="Condition"
+            value={icon.condition}
+            min={0}
+            max={12}
+            onChange={(condition) => patch({ condition })}
+          />
+
+          {/* Fiche rapide + attaque (CDC §4.3) */}
+          {icon.kind === 'enemyHacker' ? (
+            <>
+              <NumberField
+                label="Réserve d'attaque"
+                value={icon.atkPool ?? 10}
+                min={1}
+                max={20}
+                onChange={(atkPool) => patch({ atkPool })}
+              />
+              <NumberField
+                label="Réserve de défense"
+                value={icon.defPool ?? 8}
+                min={1}
+                max={20}
+                onChange={(defPool) => patch({ defPool })}
+              />
+            </>
+          ) : (
+            <div className="mb-2 rounded border border-grid bg-panel-2 p-2 text-[10px] leading-4 text-ink-dim">
+              <p>
+                FW {ICE_STATS.firewall} · Log {ICE_STATS.logique} · attaque{' '}
+                {ICE_STATS.attackPool}D{effect?.attackBonus ? `+${effect.attackBonus}` : ''} ·
+                dégâts {ICE_STATS.baseDamage}+nets
+              </p>
+              {effect?.onHitText && <p className="text-neon-red">Impact : {effect.onHitText}</p>}
+              {effect?.passiveText && <p>{effect.passiveText}</p>}
+            </div>
+          )}
+          <button className="btn btn-red mb-1 w-full text-xs" onClick={() => void doAttack()}>
+            ⚔ Attaquer le decker
+          </button>
+          {attackResult && (
+            <p className="mb-2 text-[11px] text-neon-amber">{attackResult}</p>
+          )}
+        </>
       )}
 
       {mode === 'edit' && (
