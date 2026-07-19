@@ -45,7 +45,7 @@ function generateSecurityIcons(
     return securityDifference || a.localeCompare(b);
   });
   const strongest = rankedTargets[0] ?? 'gateway';
-  const deepest = contentNodeIds.at(-1) ?? 'gateway';
+  const deepest = [...contentNodeIds].sort((a, b) => nodes[b].x - nodes[a].x)[0] ?? 'gateway';
   const middle = contentNodeIds[Math.floor(contentNodeIds.length / 2)] ?? strongest;
 
   const icons: Record<string, MatrixIcon> = {
@@ -85,13 +85,23 @@ function generateSecurityIcons(
   return icons;
 }
 
-/**
- * Générateur local sans IA et sans hasard : les mêmes entrées produisent
- * strictement le même graphe à trois branches.
- */
+const randomInt = (min: number, max: number, random: () => number) =>
+  Math.floor(random() * (max - min + 1)) + min;
+
+function shuffle<T>(values: T[], random: () => number): T[] {
+  const result = [...values];
+  for (let index = result.length - 1; index > 0; index -= 1) {
+    const other = randomInt(0, index, random);
+    [result[index], result[other]] = [result[other], result[index]];
+  }
+  return result;
+}
+
+/** Générateur local sans IA : chaque appel produit une nouvelle topologie. */
 export function generateNetwork(
   counts: GeneratorCounts,
   difficulty: GeneratorDifficulty,
+  random: () => number = Math.random,
 ): NetworkExport {
   const baseSecurity = BASE_SECURITY[difficulty];
   const nodes: Record<string, NetworkNode> = {
@@ -107,35 +117,86 @@ export function generateNetwork(
   const links: NetworkExport['network']['links'] = {
     link_1: { from: 'entry', to: 'gateway' },
   };
-  const branchEnds = ['gateway', 'gateway', 'gateway'];
-  const branchDepths = [0, 0, 0];
-  const lanes = [100, 280, 460];
-  let itemIndex = 0;
+  const instances = shuffle(
+    GENERATOR_ITEMS.flatMap((item) => {
+      const count = Math.max(0, Math.floor(counts[item.id] ?? 0));
+      return Array.from({ length: count }, (_, index) => ({ item, instance: index + 1, count }));
+    }),
+    random,
+  );
+  const maximumBranches = Math.min(4, instances.length);
+  const minimumBranches = instances.length >= 4 ? 2 : 1;
+  const branchCount = randomInt(minimumBranches, maximumBranches, random);
+  const lanes = Array.from(
+    { length: branchCount },
+    (_, index) => branchCount === 1 ? 280 : 80 + (400 * index) / (branchCount - 1),
+  );
+  const branchEnds = Array.from({ length: branchCount }, () => 'gateway');
+  const branchDepths = Array.from({ length: branchCount }, () => 0);
+  const branchNodes = Array.from({ length: branchCount }, () => [] as string[]);
+  const branchByNode = new Map<string, number>();
+  const sideLeaves = new Map<string, number>();
   let linkIndex = 2;
   const contentNodeIds: string[] = [];
 
-  for (const item of GENERATOR_ITEMS) {
-    const count = Math.max(0, Math.floor(counts[item.id] ?? 0));
-    for (let instance = 1; instance <= count; instance += 1) {
-      const branch = itemIndex % 3;
-      const nodeId = `${item.id}_${instance}`;
+  for (const [itemIndex, { item, instance, count }] of instances.entries()) {
+    const branch = itemIndex < branchCount ? itemIndex : randomInt(0, branchCount - 1, random);
+    const canMakeDeadEnd = branchNodes[branch].length >= 2;
+    const deadEnd = itemIndex >= branchCount && canMakeDeadEnd && random() < 0.3;
+    const parent = deadEnd
+      ? branchNodes[branch][randomInt(0, branchNodes[branch].length - 2, random)]
+      : branchEnds[branch];
+    const nodeId = `${item.id}_${instance}`;
+    const parentNode = nodes[parent];
+    let x: number;
+    let y: number;
+
+    if (deadEnd) {
+      const leafNumber = (sideLeaves.get(parent) ?? 0) + 1;
+      sideLeaves.set(parent, leafNumber);
+      x = parentNode.x + 125 + Math.floor((leafNumber - 1) / 2) * 35;
+      y = parentNode.y + (leafNumber % 2 === 0 ? -55 : 55);
+    } else {
       branchDepths[branch] += 1;
-      nodes[nodeId] = {
-        label: count > 1 ? `${item.label} ${instance}` : item.label,
-        type: item.type,
-        x: 240 + branchDepths[branch] * 190,
-        y: lanes[branch],
-        security: clampSecurity(baseSecurity + item.securityOffset + Math.floor((branchDepths[branch] - 1) / 2)),
-        state: 'hidden',
-        marks: 0,
-        ...(item.deviceInfo ? { deviceInfo: item.deviceInfo } : {}),
-        ...(item.paydata ? { paydata: item.paydata } : {}),
-      };
-      contentNodeIds.push(nodeId);
-      links[`link_${linkIndex}`] = { from: branchEnds[branch], to: nodeId };
+      x = 240 + branchDepths[branch] * 190;
+      y = lanes[branch] + randomInt(-22, 22, random);
       branchEnds[branch] = nodeId;
-      itemIndex += 1;
-      linkIndex += 1;
+    }
+
+    nodes[nodeId] = {
+      label: count > 1 ? `${item.label} ${instance}` : item.label,
+      type: item.type,
+      x,
+      y,
+      security: clampSecurity(baseSecurity + item.securityOffset + Math.floor((x - 240) / 380)),
+      state: 'hidden',
+      marks: 0,
+      ...(item.deviceInfo ? { deviceInfo: item.deviceInfo } : {}),
+      ...(item.paydata ? { paydata: item.paydata } : {}),
+    };
+    contentNodeIds.push(nodeId);
+    branchNodes[branch].push(nodeId);
+    branchByNode.set(nodeId, branch);
+    links[`link_${linkIndex}`] = { from: parent, to: nodeId };
+    linkIndex += 1;
+  }
+
+  // Certaines variantes reçoivent une ou deux passerelles entre axes.
+  const crossLinkAttempts = instances.length >= 4 && random() < 0.45
+    ? 1 + (instances.length >= 8 && random() < 0.4 ? 1 : 0)
+    : 0;
+  const linkedPairs = new Set(Object.values(links).map((link) => [link.from, link.to].sort().join('|')));
+  for (let crossLink = 0; crossLink < crossLinkAttempts; crossLink += 1) {
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      const from = contentNodeIds[randomInt(0, contentNodeIds.length - 1, random)];
+      const to = contentNodeIds[randomInt(0, contentNodeIds.length - 1, random)];
+      const pair = [from, to].sort().join('|');
+      if (from !== to && branchByNode.get(from) !== branchByNode.get(to) && !linkedPairs.has(pair)) {
+        links[`link_${linkIndex}`] = { from, to };
+        linkedPairs.add(pair);
+        linkIndex += 1;
+        break;
+      }
     }
   }
 

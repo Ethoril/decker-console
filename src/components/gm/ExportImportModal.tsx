@@ -171,10 +171,10 @@ export function ExportImportModal({ code, onClose }: { code: string; onClose: ()
             disabled={selectedCount < 1}
             onClick={() => void doGenerate()}
           >
-            Générer le réseau ({selectedCount} élément{selectedCount > 1 ? 's' : ''})
+            Générer une nouvelle variante ({selectedCount} élément{selectedCount > 1 ? 's' : ''})
           </button>
           <p className="mt-2 text-[10px] text-ink-dim">
-            Faible : 1 GLACE · Standard : 2 GLACES · Élevée : 4 GLACES + 1 Spider. Même sélection, même réseau.
+            Faible : 1 GLACE · Standard : 2 GLACES · Élevée : 4 GLACES + 1 Spider. Branches, impasses et passerelles varient à chaque génération.
           </p>
         </details>
         <textarea
