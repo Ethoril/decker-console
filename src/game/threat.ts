@@ -5,7 +5,7 @@
 import { PERSONA } from '../data/persona';
 import { ICE_EFFECTS, ICE_STATS } from '../data/ice';
 import { SECURITY_TABLE } from '../data/security';
-import { deckerDefaults, useNetworkStore } from '../store/network';
+import { useNetworkStore } from '../store/network';
 import {
   appendLog,
   createIcon,
@@ -17,7 +17,6 @@ import {
 } from '../sync/write';
 import { countSuccesses, rollDice } from './dice';
 import { defensePoolSize } from './pools';
-import { MODE_LABELS } from './actions';
 
 const d = () => useNetworkStore.getState().decker;
 
@@ -26,8 +25,7 @@ const d = () => useNetworkStore.getState().decker;
 export const MONITORS = { stun: 10, physical: 10, deck: PERSONA.deck.monitor } as const;
 
 /**
- * Route les dégâts matriciels selon le mode (CDC §3.5) :
- * RA → moniteur du deck (9 cases) ; RV/Hot-Sim → physique du decker.
+ * L'application fonctionne toujours en RA : les dégâts matriciels vont au deck.
  * `forcePhysical` : GLACE Noire (toujours la chair).
  */
 export async function applyMatrixDamage(
@@ -38,9 +36,7 @@ export async function applyMatrixDamage(
 ): Promise<string> {
   if (amount <= 0) return 'aucun dégât';
   const decker = d();
-  const mode = decker.mode ?? deckerDefaults.mode;
-
-  if (!forcePhysical && mode === 'AR') {
+  if (!forcePhysical) {
     const before = decker.deckCondition ?? 0;
     const after = Math.min(MONITORS.deck, before + amount);
     await updateDecker(code, { deckCondition: after });
@@ -300,16 +296,11 @@ export async function endConvergence(code: string): Promise<void> {
   await updateDecker(code, { convergence: false });
 }
 
-/** Dumpshock (bouton MJ) : 3 cases — Étourdi en RA, Physique en RV — puis RA. */
+/** Dumpshock en RA : 3 cases Étourdissant. */
 export async function dumpshock(code: string): Promise<void> {
-  const mode = d().mode ?? deckerDefaults.mode;
-  if (mode === 'AR') {
-    await applyStun(code, 3, 'Dumpshock');
-  } else {
-    await applyMatrixDamage(code, 3, 'Dumpshock', true);
-  }
+  await applyStun(code, 3, 'Dumpshock');
   await updateDecker(code, { mode: 'AR', trapped: false });
-  await appendLog(code, 'alert', `Éjection forcée de la Matrice (retour ${MODE_LABELS.AR}).`);
+  await appendLog(code, 'alert', 'Éjection forcée de la Matrice.');
 }
 
 // ------------------------------------------------------------------ reboot

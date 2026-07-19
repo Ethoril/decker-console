@@ -5,7 +5,6 @@
 import { PERSONA } from '../data/persona';
 import { SECURITY_TABLE } from '../data/security';
 import type {
-  ConnectionMode,
   EnvironmentState,
   NetworkNode,
   PoolLine,
@@ -13,17 +12,6 @@ import type {
 
 function line(id: string, label: string, value: number): PoolLine {
   return { id, label, value, enabled: true };
-}
-
-function modeLines(mode: ConnectionMode): PoolLine[] {
-  const lines: PoolLine[] = [];
-  if (mode === 'VR') lines.push(line('mode', 'Mode RV', 1));
-  if (mode === 'HOTSIM') lines.push(line('mode', 'Mode Hot-Sim', 1));
-  if (mode !== 'AR') {
-    // Cumulatif avec le bonus de mode (décision MJ, CDC §8.1)
-    lines.push(line('datajack', 'Datajack (RV/HS)', PERSONA.datajack));
-  }
-  return lines;
 }
 
 function environmentLines(env: EnvironmentState): PoolLine[] {
@@ -38,14 +26,12 @@ function environmentLines(env: EnvironmentState): PoolLine[] {
 /** Test d'infiltration (hack de nœud) — Force Brute ou Corruption. */
 export function infiltrationPool(
   targetNode: NetworkNode,
-  mode: ConnectionMode,
   env: EnvironmentState,
 ): PoolLine[] {
   const lines: PoolLine[] = [
     line('hacking', 'Hacking', PERSONA.hacking),
     line('logique', 'Logique', PERSONA.logique),
     line('bonCodeur', 'Bon codeur (hors cybercombat)', PERSONA.traits.bonCodeur),
-    ...modeLines(mode),
     ...environmentLines(env),
   ];
   const secMod = SECURITY_TABLE[targetNode.security]?.modifier ?? 0;
@@ -58,22 +44,20 @@ export function infiltrationPool(
 }
 
 /** Perception matricielle (scan des environs, analyse d'une GLACE). */
-export function perceptionPool(mode: ConnectionMode): PoolLine[] {
+export function perceptionPool(): PoolLine[] {
   return [
     line('logique', 'Logique', PERSONA.logique),
     line('electronique', 'Électronique', PERSONA.electronique),
-    ...modeLines(mode),
   ];
 }
 
 /** Cybercombat — attaque (CDC §3.2). */
-export function cybercombatPool(mode: ConnectionMode): PoolLine[] {
+export function cybercombatPool(): PoolLine[] {
   return [
     line('hacking', 'Hacking', PERSONA.hacking),
     line('spec', 'Spécialisation cybercombat', PERSONA.specCybercombat),
     line('logique', 'Logique', PERSONA.logique),
     line('cybercombattant', 'Cybercombattant', PERSONA.traits.cybercombattant),
-    ...modeLines(mode),
   ];
 }
 
@@ -91,12 +75,11 @@ export function repairPool(): PoolLine[] {
 }
 
 /** Fuite du Pot de colle : test de Hacking (CDC §3.7). */
-export function escapePool(mode: ConnectionMode): PoolLine[] {
+export function escapePool(): PoolLine[] {
   return [
     line('hacking', 'Hacking', PERSONA.hacking),
     line('logique', 'Logique', PERSONA.logique),
     line('bonCodeur', 'Bon codeur (hors cybercombat)', PERSONA.traits.bonCodeur),
-    ...modeLines(mode),
   ];
 }
 

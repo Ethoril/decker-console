@@ -56,7 +56,7 @@ export type ProgramState = 'active' | 'crashed';
 /** Sous-arbre decker/ — Phases 2+3 : position, mode, moniteurs, menace. */
 export interface DeckerState {
   nodeId?: string | null;
-  mode?: ConnectionMode; // défaut AR
+  mode?: ConnectionMode; // compatibilité des anciennes sessions ; jeu toujours en RA
   stun?: number; // cases étourdissantes cochées
   physical?: number; // cases physiques cochées
   deckCondition?: number; // 0..9 cases cochées (Cyber-5)

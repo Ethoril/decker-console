@@ -6,6 +6,7 @@ import { publishRollAndLog, spendLuck } from '../../game/actions';
 import {
   MINI_GAME_LABELS,
   createMiniGame,
+  pickMiniGameKind,
   resolveMiniGame,
   startMiniGame,
 } from '../../game/minigames';
@@ -44,6 +45,18 @@ export interface RollRequest {
   /** Applique l'effet du jet et retourne le résumé (outcome). */
   apply: (successes: number) => Promise<string>;
   miniGame?: { kind: MiniGameKind; context: MiniGameRequestContext };
+}
+
+type AutomaticResolution =
+  | { type: 'direct'; label: string }
+  | { type: 'minigame'; label: string; difficultySuccesses: number };
+
+function automaticResolution(successes: number): AutomaticResolution {
+  if (successes >= 5) return { type: 'direct', label: 'Réussite forte — effet immédiat' };
+  if (successes >= 3) return { type: 'minigame', label: 'Réussite moyenne — séquence simple', difficultySuccesses: 4 };
+  if (successes === 2) return { type: 'minigame', label: 'Réussite faible — séquence moyenne', difficultySuccesses: 2 };
+  if (successes === 1) return { type: 'minigame', label: 'Petit échec — séquence difficile', difficultySuccesses: 0 };
+  return { type: 'direct', label: 'Échec important — conséquence immédiate' };
 }
 
 /**
@@ -88,6 +101,7 @@ export function RollModal({
   const successOn: 4 | 5 = luckOn ? 4 : 5;
   const penalty = request.successPenalty ?? 0;
   const successes = dice ? Math.max(0, countSuccesses(dice, successOn) - penalty) : 0;
+  const resolution = automaticResolution(successes);
 
   const toggleLine = (id: string) =>
     setLines((ls) => ls.map((l) => (l.id === id ? { ...l, enabled: !l.enabled } : l)));
@@ -130,7 +144,7 @@ export function RollModal({
     }
   };
 
-  const doStartMiniGame = async () => {
+  const doStartMiniGame = async (difficultySuccesses: number) => {
     if (!dice || busy || !request.miniGame) return;
     setBusy(true);
     try {
@@ -138,7 +152,8 @@ export function RollModal({
         ...request.miniGame.context,
         rollSuccesses: successes,
       } as MiniGameContext;
-      const game = createMiniGame(request.action, request.miniGame.kind, context);
+      const kind = pickMiniGameKind(request.miniGame.kind);
+      const game = createMiniGame(request.action, kind, context, difficultySuccesses);
       const record: RollRecord = {
         ts: Date.now(),
         action: request.action,
@@ -158,6 +173,11 @@ export function RollModal({
     } finally {
       setBusy(false);
     }
+  };
+
+  const doAutomaticResolution = () => {
+    if (resolution.type === 'direct') void doValidate();
+    else void doStartMiniGame(resolution.difficultySuccesses);
   };
 
   const finishMiniGame = useCallback(async (won: boolean) => {
@@ -328,20 +348,16 @@ export function RollModal({
               {rerolled ? '(utilisée)' : '(1×/test)'}
             </button>
             {request.miniGame ? (
-              <div className="grid grid-cols-2 gap-2">
+              <div className="flex flex-col gap-2">
+                <p className={`text-center text-[11px] ${resolution.type === 'direct' ? 'text-neon-cyan' : 'text-neon-magenta'}`}>
+                  {resolution.label}
+                </p>
                 <button
-                  className="btn py-3 text-xs"
+                  className={`btn py-3 text-xs ${resolution.type === 'minigame' ? 'btn-magenta' : 'btn-cyan'}`}
                   disabled={busy}
-                  onClick={() => void doValidate()}
+                  onClick={doAutomaticResolution}
                 >
-                  Résolution directe
-                </button>
-                <button
-                  className="btn btn-magenta py-3 text-xs"
-                  disabled={busy}
-                  onClick={() => void doStartMiniGame()}
-                >
-                  {MINI_GAME_LABELS[request.miniGame.kind]}
+                  {resolution.type === 'direct' ? 'Appliquer le résultat' : 'Lancer la séquence'}
                 </button>
               </div>
             ) : (

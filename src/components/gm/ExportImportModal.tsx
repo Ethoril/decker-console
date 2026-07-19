@@ -2,11 +2,37 @@ import { useState } from 'react';
 import { clearNetwork, exportNetwork, importNetwork } from '../../sync/write';
 import type { NetworkExport } from '../../types';
 import { NETWORK_TEMPLATES, type NetworkTemplate } from '../../data/networkTemplates';
+import {
+  GENERATOR_ITEMS,
+  generateNetwork,
+  type GeneratorCounts,
+  type GeneratorDifficulty,
+} from '../../game/networkGenerator';
 
 /** Export / import JSON du réseau (nodes + links + icons + position decker). */
 export function ExportImportModal({ code, onClose }: { code: string; onClose: () => void }) {
   const [text, setText] = useState('');
   const [message, setMessage] = useState<string | null>(null);
+  const [counts, setCounts] = useState<GeneratorCounts>({});
+  const [difficulty, setDifficulty] = useState<GeneratorDifficulty>('standard');
+
+  const selectedCount = Object.values(counts).reduce((sum, value) => sum + value, 0);
+
+  const changeCount = (id: string, delta: number) => {
+    setCounts((current) => ({
+      ...current,
+      [id]: Math.max(0, Math.min(9, (current[id] ?? 0) + delta)),
+    }));
+  };
+
+  const doGenerate = async () => {
+    if (selectedCount < 1) return;
+    if (!window.confirm('Générer ce réseau ? Le réseau actuel sera intégralement remplacé.')) return;
+    const generated = generateNetwork(counts, difficulty);
+    await importNetwork(code, generated);
+    setText(JSON.stringify(generated, null, 2));
+    setMessage(`Réseau généré : ${selectedCount} élément(s), sans IA.`);
+  };
 
   const doExport = () => {
     const json = JSON.stringify(exportNetwork(), null, 2);
@@ -65,7 +91,7 @@ export function ExportImportModal({ code, onClose }: { code: string; onClose: ()
     <div className="fixed inset-0 z-40 flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-abyss/80" />
       <div
-        className="relative z-10 flex max-h-full w-full max-w-2xl flex-col gap-3 rounded border border-grid bg-panel p-4"
+        className="relative z-10 flex max-h-full w-full max-w-4xl flex-col gap-3 overflow-y-auto rounded border border-grid bg-panel p-4"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
@@ -102,6 +128,55 @@ export function ExportImportModal({ code, onClose }: { code: string; onClose: ()
             ))}
           </div>
         </div>
+        <details className="rounded border border-grid bg-panel-2 p-3" open>
+          <summary className="cursor-pointer text-xs tracking-wider text-neon-magenta uppercase">
+            Générateur automatique — sans IA
+          </summary>
+          <div className="mt-3 flex items-end gap-3">
+            <label className="flex-1">
+              <span className="mb-1 block text-[10px] tracking-wider text-ink-dim uppercase">Sécurité</span>
+              <select
+                className="field"
+                value={difficulty}
+                onChange={(event) => setDifficulty(event.target.value as GeneratorDifficulty)}
+              >
+                <option value="low">Faible</option>
+                <option value="standard">Standard</option>
+                <option value="high">Élevée</option>
+              </select>
+            </label>
+            <button
+              className="btn text-[10px]"
+              disabled={selectedCount < 1}
+              onClick={() => setCounts({})}
+            >
+              Remise à zéro
+            </button>
+          </div>
+          <div className="mt-3 grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+            {GENERATOR_ITEMS.map((item) => {
+              const count = counts[item.id] ?? 0;
+              return (
+                <div key={item.id} className="flex items-center gap-2 rounded border border-grid px-2 py-1.5">
+                  <span className="min-w-0 flex-1 text-[11px]">{item.label}</span>
+                  <button className="btn px-2 py-0.5" disabled={count < 1} onClick={() => changeCount(item.id, -1)}>−</button>
+                  <span className="w-4 text-center text-xs text-neon-cyan">{count}</span>
+                  <button className="btn px-2 py-0.5" disabled={count >= 9} onClick={() => changeCount(item.id, 1)}>+</button>
+                </div>
+              );
+            })}
+          </div>
+          <button
+            className="btn btn-magenta mt-3 w-full py-2 text-xs"
+            disabled={selectedCount < 1}
+            onClick={() => void doGenerate()}
+          >
+            Générer le réseau ({selectedCount} élément{selectedCount > 1 ? 's' : ''})
+          </button>
+          <p className="mt-2 text-[10px] text-ink-dim">
+            Même sélection, même réseau : point d’accès, passerelle et trois branches calculées localement.
+          </p>
+        </details>
         <textarea
           className="field min-h-40 flex-1 resize-none text-xs"
           placeholder="Collez ici un JSON de réseau à importer, ou cliquez Exporter…"

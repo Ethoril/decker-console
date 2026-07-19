@@ -1,5 +1,5 @@
 import { PERSONA } from '../../data/persona';
-import { MODE_LABELS, rechargeLuck } from '../../game/actions';
+import { rechargeLuck } from '../../game/actions';
 import { MINI_GAME_LABELS, resolveMiniGame } from '../../game/minigames';
 import {
   MONITORS,
@@ -155,8 +155,7 @@ export function GamePanel({ code }: { code: string }) {
       {/* --- Decker --- */}
       <h3 className="panel-title mt-2">Decker</h3>
       <p className="text-xs text-ink-dim">
-        Mode : <span className="text-neon-cyan">{MODE_LABELS[decker.mode ?? 'AR']}</span> · 🍀{' '}
-        {luck}/{PERSONA.chance}
+        🍀 {luck}/{PERSONA.chance}
         {decker.trapped && <span className="text-neon-red"> · PIÉGÉ</span>}
       </p>
       <NumberField

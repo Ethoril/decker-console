@@ -9,7 +9,6 @@ import { PERSONA } from '../data/persona';
 import { MARK_RIGHTS } from '../data/security';
 import {
   APPROACH_LABELS,
-  MODE_LABELS,
   applyHack,
   applyIceAnalysis,
   applyScan,
@@ -18,7 +17,6 @@ import {
   knownLabel,
   moveDeckerTo,
   readPaydata,
-  setConnectionMode,
   type HackApproach,
 } from '../game/actions';
 import {
@@ -40,7 +38,7 @@ import {
 } from '../game/pools';
 import { deckerDefaults, useNetworkStore } from '../store/network';
 import { useSessionStore } from '../store/session';
-import type { ConnectionMode, Link, MatrixIcon, NetworkNode } from '../types';
+import type { Link, MatrixIcon, NetworkNode } from '../types';
 
 export default function DeckerView() {
   const code = useSessionStore((s) => s.code)!;
@@ -54,7 +52,6 @@ export default function DeckerView() {
   const [approachPick, setApproachPick] = useState(false);
   const [revealedInfo, setRevealedInfo] = useState<{ title: string; text: string } | null>(null);
 
-  const mode = decker.mode ?? deckerDefaults.mode;
   const luck = decker.luck ?? deckerDefaults.luck;
   const stun = decker.stun ?? deckerDefaults.stun;
   const physical = decker.physical ?? deckerDefaults.physical;
@@ -121,7 +118,7 @@ export default function DeckerView() {
   const startScan = () =>
     setRoll({
       action: 'Perception matricielle — scan',
-      lines: perceptionPool(mode),
+      lines: perceptionPool(),
       withComplication: false,
       apply: (s) => applyScan(code, s),
     });
@@ -130,7 +127,7 @@ export default function DeckerView() {
     if (!selectedIconId) return;
     setRoll({
       action: 'Perception matricielle — analyse de GLACE',
-      lines: perceptionPool(mode),
+      lines: perceptionPool(),
       withComplication: false,
       apply: (s) => applyIceAnalysis(code, selectedIconId, s),
     });
@@ -143,7 +140,7 @@ export default function DeckerView() {
     if (!target) return;
     setRoll({
       action: `Hack (${APPROACH_LABELS[approach]}) — ${knownLabel(hackTargetId)}`,
-      lines: infiltrationPool(target, mode, environment),
+      lines: infiltrationPool(target, environment),
       withComplication: true,
       successPenalty,
       apply: (s) => applyHack(code, hackTargetId, approach, s),
@@ -159,7 +156,7 @@ export default function DeckerView() {
     const icon = icons[attackTargetId];
     setRoll({
       action: `Cybercombat — ${icon?.label ?? 'cible'}`,
-      lines: cybercombatPool(mode),
+      lines: cybercombatPool(),
       withComplication: true,
       successPenalty,
       apply: (s) => applyDeckerAttack(code, attackTargetId, s),
@@ -169,7 +166,7 @@ export default function DeckerView() {
   const startEscape = () =>
     setRoll({
       action: 'Fuite — Pot de colle',
-      lines: escapePool(mode),
+      lines: escapePool(),
       withComplication: true,
       successPenalty,
       apply: (s) => applyEscape(code, s),
@@ -180,7 +177,7 @@ export default function DeckerView() {
     if (!deckerNodeId || !currentNode) return;
     setRoll({
       action: `Décryptage paydata — ${knownLabel(deckerNodeId)}`,
-      lines: infiltrationPool(currentNode, mode, environment),
+      lines: infiltrationPool(currentNode, environment),
       withComplication: true,
       successPenalty,
       apply: async (successes) => {
@@ -200,7 +197,7 @@ export default function DeckerView() {
   const startJamming = () =>
     setRoll({
       action: 'Brouillage anti-pistage',
-      lines: escapePool(mode),
+      lines: escapePool(),
       withComplication: true,
       successPenalty,
       apply: (s) => applyTraceJamming(code, s),
@@ -230,20 +227,6 @@ export default function DeckerView() {
     if (window.confirm('Rebooter le deck ? Surveillance purgée, console inactive 3 tours.')) {
       void reboot(code);
     }
-  };
-
-  const changeMode = (m: ConnectionMode) => {
-    if (m === mode) return;
-    if (
-      mode === 'AR' &&
-      m !== 'AR' &&
-      !window.confirm(
-        `Connexion ${MODE_LABELS[m]} : trait Écorché → +${PERSONA.traits.ecorche} cases Étourdissant. Continuer ?`,
-      )
-    ) {
-      return;
-    }
-    void setConnectionMode(code, m);
   };
 
   const logEntries = useMemo(
@@ -298,26 +281,6 @@ export default function DeckerView() {
                 <span className="text-neon-red"> · FW −{firewallPenalty}</span>
               )}
             </p>
-          </div>
-
-          {/* Mode de connexion */}
-          <div className="mb-2">
-            <span className="mb-1 block text-[10px] tracking-wider text-ink-dim uppercase">
-              Mode de connexion
-            </span>
-            <div className="grid grid-cols-3 gap-1">
-              {(['AR', 'VR', 'HOTSIM'] as ConnectionMode[]).map((m) => (
-                <button
-                  key={m}
-                  className={`btn px-1 py-1.5 text-[11px] ${mode === m ? 'btn-cyan active' : ''}`}
-                  aria-pressed={mode === m}
-                  disabled={actionsLocked}
-                  onClick={() => changeMode(m)}
-                >
-                  {MODE_LABELS[m]}
-                </button>
-              ))}
-            </div>
           </div>
 
           {/* Moniteurs */}
@@ -432,14 +395,16 @@ export default function DeckerView() {
               </button>
             ) : (
               <div className="grid grid-cols-2 gap-1">
-                <button className="btn btn-red text-[11px]" onClick={() => startHack('bruteForce')}>
-                  Force Brute
+                <button className="btn btn-red h-auto py-2 text-[11px]" onClick={() => startHack('bruteForce')}>
+                  <span className="block">Force Brute</span>
+                  <span className="mt-1 block text-[9px] leading-3 opacity-70">Rapide · échec = dégâts</span>
                 </button>
                 <button
-                  className="btn btn-magenta text-[11px]"
+                  className="btn btn-magenta h-auto py-2 text-[11px]"
                   onClick={() => startHack('corruption')}
                 >
-                  Corruption
+                  <span className="block">Corruption</span>
+                  <span className="mt-1 block text-[9px] leading-3 opacity-70">Discrète · échec = alerte</span>
                 </button>
               </div>
             )}

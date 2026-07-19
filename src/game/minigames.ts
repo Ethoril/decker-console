@@ -22,6 +22,21 @@ export const MINI_GAME_LABELS: Record<MiniGameKind, string> = {
   jamming: 'Brouillage',
 };
 
+/** Garde le jeu thématique à 65 %, puis répartit le reste entre 3 variantes. */
+export function pickMiniGameKind(primary: MiniGameKind): MiniGameKind {
+  const alternatives: Record<MiniGameKind, MiniGameKind[]> = {
+    injection: ['overload', 'decryption', 'extraction'],
+    overload: ['injection', 'decryption', 'extraction'],
+    decryption: ['injection', 'overload', 'extraction'],
+    extraction: ['injection', 'overload', 'decryption'],
+    jamming: ['injection', 'overload', 'decryption'],
+  };
+  const roll = Math.random();
+  if (roll < 0.65) return primary;
+  const variants = alternatives[primary];
+  return variants[Math.min(2, Math.floor(((roll - 0.65) / 0.35) * 3))];
+}
+
 export function injectionParams(successes: number): InjectionParams {
   if (successes >= 4) return { sequenceLength: 3, alphabetSize: 5, maxAttempts: 6 };
   if (successes >= 2) return { sequenceLength: 4, alphabetSize: 6, maxAttempts: 6 };
@@ -79,8 +94,9 @@ export function createMiniGame(
   action: string,
   kind: MiniGameKind,
   context: MiniGameContext,
+  difficultySuccesses = context.rollSuccesses,
 ): MiniGameState {
-  const params = paramsFor(kind, context.rollSuccesses);
+  const params = paramsFor(kind, difficultySuccesses);
   return {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     kind,
