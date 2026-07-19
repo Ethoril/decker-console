@@ -8,6 +8,7 @@ import type {
   Link,
   LogKind,
   MatrixIcon,
+  MiniGameState,
   NetworkExport,
   NetworkNode,
   NodeState,
@@ -187,6 +188,23 @@ export async function setIntervention(code: string, value: number | null): Promi
 /** Publie le dernier jet (miroir MJ, dé de complication inclus). */
 export async function publishRoll(code: string, roll: RollRecord): Promise<void> {
   await set(ref(getDb(), `${sessionPath(code)}/lastRoll`), roll);
+}
+
+// -------------------------------------------------------------- mini-jeux
+
+export async function publishMiniGame(code: string, game: MiniGameState): Promise<void> {
+  await set(ref(getDb(), `${sessionPath(code)}/minigame`), game);
+}
+
+export async function updateMiniGame(
+  code: string,
+  partial: Partial<MiniGameState>,
+): Promise<void> {
+  await update(ref(getDb(), `${sessionPath(code)}/minigame`), partial);
+}
+
+export async function clearMiniGame(code: string): Promise<void> {
+  await set(ref(getDb(), `${sessionPath(code)}/minigame`), null);
 }
 
 // --------------------------------------------------------------------- log

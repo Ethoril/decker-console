@@ -5,6 +5,7 @@ import { GamePanel } from '../components/gm/GamePanel';
 import { IconPanel } from '../components/gm/IconPanel';
 import { NodePanel } from '../components/gm/NodePanel';
 import { PresenceDot, SideColumn, useIsShort } from '../components/ui';
+import { SoundToggle } from '../components/SoundToggle';
 import { useNetworkStore } from '../store/network';
 import { useSessionStore } from '../store/session';
 import {
@@ -140,6 +141,7 @@ export default function GmView() {
           <button className="btn ml-2 px-2 py-1 text-xs" onClick={leave}>
             Quitter
           </button>
+          <SoundToggle />
         </div>
       </header>
 

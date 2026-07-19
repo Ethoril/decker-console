@@ -4,7 +4,9 @@ Compagnon de jeu web pour les phases de hacking d'une campagne **Shadowrun Anarc
 un **MJ** et un **Decker** connectés en temps réel (Firebase RTDB), carte réseau SVG
 avec brouillard de guerre. Voir `cahier-des-charges-decker.md` pour le périmètre complet.
 
-État actuel : **Phases 0 + 1** (socle, sessions, carte partagée, éditeur MJ, fog of war).
+État actuel : **Phases 0 à 5 complètes** — version jouable avec moteur de règles,
+menaces, cinq mini-jeux, sons, animations, convergence DIEU et bibliothèque de
+réseaux.
 
 ## Mise en route
 
@@ -51,7 +53,17 @@ code dans l'autre (rôle Decker).
   propriétés, export/import JSON du réseau, placer le persona) ↔ mode **Jeu**
   (déplacer les icônes, changer états et marks, révéler/masquer au joueur).
 - **Vue Decker** : carte avec brouillard de guerre, **Scanner** (révèle les nœuds
-  adjacents), **Se déplacer** (nœud adjacent visible), log terminal en tiroir.
+  adjacents), jets et actions matricielles, moniteurs et menace, **Se déplacer**
+  (nœud adjacent visible), log terminal en tiroir. Après un jet de Corruption,
+  **Injection de code** propose une résolution tactile de type Mastermind.
+- **Vue MJ** : le panneau de jeu affiche la progression du mini-jeu en direct et
+  permet de le passer en réussite ou de forcer son échec.
+- **Mini-jeux** : Injection de code (Corruption), Surcharge (Force Brute),
+  Décryptage (paydata), Extraction d'urgence (Pot de colle) et Brouillage
+  (Traceuse). Leur difficulté dépend des succès du jet initial.
+- **Polish** : sons synthétiques activables depuis les vues MJ/Decker, alertes
+  et GLACES animées, écran de convergence DIEU renforcé. L'outil
+  **Export / Import** propose aussi trois réseaux prêts à jouer.
 
 Cible d'affichage : tablette **paysage** ; utilisable en smartphone paysage
 (colonnes repliées en tiroirs). Portrait : écran « tournez l'écran ».

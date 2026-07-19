@@ -1,5 +1,6 @@
 import { PERSONA } from '../../data/persona';
 import { MODE_LABELS, rechargeLuck } from '../../game/actions';
+import { MINI_GAME_LABELS, resolveMiniGame } from '../../game/minigames';
 import {
   MONITORS,
   dumpshock,
@@ -11,7 +12,7 @@ import {
   triggerConvergence,
 } from '../../game/threat';
 import { deckerDefaults, useNetworkStore } from '../../store/network';
-import { setEnvironment, updateDecker } from '../../sync/write';
+import { clearMiniGame, setEnvironment, updateDecker } from '../../sync/write';
 import type { EnvironmentState, ProgramState } from '../../types';
 import { NumberField, SelectField, ToggleField } from './fields';
 
@@ -29,7 +30,7 @@ const DISTANCE_OPTIONS: Array<[string, string]> = [
 
 /** Panneau MJ de pilotage : Surveillance/DIEU, tours, environnement, decker. */
 export function GamePanel({ code }: { code: string }) {
-  const { decker, environment, countdowns, lastRoll } = useNetworkStore();
+  const { decker, environment, countdowns, lastRoll, minigame } = useNetworkStore();
   const stun = decker.stun ?? deckerDefaults.stun;
   const physical = decker.physical ?? deckerDefaults.physical;
   const deckCondition = decker.deckCondition ?? deckerDefaults.deckCondition;
@@ -37,6 +38,7 @@ export function GamePanel({ code }: { code: string }) {
   const luck = decker.luck ?? deckerDefaults.luck;
   const surveillance = decker.surveillance ?? 0;
   const rebootCountdown = decker.rebootCountdown ?? 0;
+  const traceDelay = decker.traceDelay ?? 0;
   const systemBuff = environment.systemBuff ?? 0;
   const intervention = countdowns.intervention ?? null;
   const programs = decker.programs ?? {};
@@ -100,7 +102,8 @@ export function GamePanel({ code }: { code: string }) {
         ▶ Tour suivant
       </button>
       <p className="text-[10px] text-ink-dim">
-        Reboot : {rebootCountdown > 0 ? `${rebootCountdown} tour(s)` : '—'} · Intervention :{' '}
+        Reboot : {rebootCountdown > 0 ? `${rebootCountdown} tour(s)` : '—'} · Trace :{' '}
+        {traceDelay > 0 ? `${traceDelay} tour(s)` : '—'} · Intervention :{' '}
         {intervention === null ? '—' : `${intervention} tour(s)`}
         {systemBuff > 0 && (
           <span className="text-neon-amber"> · buff système +{systemBuff}</span>
@@ -211,6 +214,63 @@ export function GamePanel({ code }: { code: string }) {
       <button className="btn text-xs" onClick={() => void rechargeLuck(code)}>
         🍀 Recharger la Chance ({PERSONA.chance})
       </button>
+
+      {/* --- Miroir mini-jeu --- */}
+      <h3 className="panel-title mt-2">Mini-jeu</h3>
+      {!minigame ? (
+        <p className="text-[10px] text-ink-dim">— aucun mini-jeu —</p>
+      ) : (
+        <div className="rounded border border-neon-magenta/40 bg-panel-2 p-2 text-[11px] leading-5">
+          <p className="text-neon-magenta">{MINI_GAME_LABELS[minigame.kind]}</p>
+          <p className="truncate text-ink-dim" title={minigame.action}>
+            {minigame.action}
+          </p>
+          <p>
+            {minigame.progress.label} : {minigame.progress.value}/{minigame.progress.total}
+          </p>
+          {minigame.progress.detail && (
+            <p className="text-ink-dim">{minigame.progress.detail}</p>
+          )}
+          <p
+            className={
+              minigame.status === 'success'
+                ? 'text-neon-green'
+                : minigame.status === 'failure'
+                  ? 'text-neon-red'
+                  : 'pulse-slow text-neon-cyan'
+            }
+          >
+            {minigame.status === 'active'
+              ? 'EN COURS'
+              : minigame.status === 'success'
+                ? 'RÉUSSI'
+                : 'ÉCHOUÉ'}
+          </p>
+          {minigame.status === 'active' ? (
+            <div className="mt-1 grid grid-cols-2 gap-1">
+              <button
+                className="btn btn-cyan text-[10px]"
+                onClick={() => void resolveMiniGame(code, minigame, true)}
+              >
+                Passer · réussite
+              </button>
+              <button
+                className="btn btn-red text-[10px]"
+                onClick={() => void resolveMiniGame(code, minigame, false)}
+              >
+                Forcer l'échec
+              </button>
+            </div>
+          ) : (
+            <button
+              className="btn mt-1 w-full text-[10px]"
+              onClick={() => void clearMiniGame(code)}
+            >
+              Archiver le résultat
+            </button>
+          )}
+        </div>
+      )}
 
       {/* --- Dernier jet --- */}
       <h3 className="panel-title mt-2">Dernier jet</h3>

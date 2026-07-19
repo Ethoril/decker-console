@@ -69,6 +69,7 @@ export interface DeckerState {
   rebootCountdown?: number; // > 0 = deck inactif
   trapped?: boolean; // Pot de colle actif → déconnexion interdite
   convergence?: boolean; // séquence DIEU en cours (plein écran rouge joueur)
+  traceDelay?: number; // tours gagnés par Brouillage avant localisation
 }
 
 /** Sous-arbre environment/ — malus d'environnement + buff système (CDC §2). */
@@ -106,6 +107,105 @@ export interface RollRecord {
   /** Dé de complication (tests de Hacking uniquement, sinon 0). Visible MJ seul. */
   complication: number;
   outcome: string; // résumé de l'effet appliqué
+}
+
+export type MiniGameKind =
+  | 'injection'
+  | 'overload'
+  | 'decryption'
+  | 'extraction'
+  | 'jamming';
+export type MiniGameStatus = 'active' | 'success' | 'failure';
+
+export interface InjectionParams {
+  sequenceLength: number;
+  alphabetSize: number;
+  maxAttempts: number;
+}
+
+export interface OverloadParams {
+  zoneWidth: number;
+  speed: number;
+  requiredHits: number;
+}
+
+export interface DecryptionParams {
+  gridSize: number;
+  timeLimit: number;
+}
+
+export interface ExtractionParams {
+  gridSize: number;
+  timeLimit: number;
+}
+
+export interface JammingParams {
+  duration: number;
+  spawnInterval: number;
+  maxMisses: number;
+}
+
+export type MiniGameParams =
+  | InjectionParams
+  | OverloadParams
+  | DecryptionParams
+  | ExtractionParams
+  | JammingParams;
+
+export interface MiniGameProgress {
+  label: string;
+  value: number;
+  total: number;
+  detail?: string;
+}
+
+export interface HackMiniGameContext {
+  type: 'hack';
+  nodeId: string;
+  approach: 'bruteForce' | 'corruption';
+  /** Succès du jet initial ; un mini-jeu réussi garantit au moins 1 Mark. */
+  rollSuccesses: number;
+}
+
+export interface PaydataMiniGameContext {
+  type: 'paydata';
+  nodeId: string;
+  rollSuccesses: number;
+}
+
+export interface EscapeMiniGameContext {
+  type: 'escape';
+  rollSuccesses: number;
+}
+
+export interface TraceMiniGameContext {
+  type: 'trace';
+  rollSuccesses: number;
+}
+
+export type MiniGameContext =
+  | HackMiniGameContext
+  | PaydataMiniGameContext
+  | EscapeMiniGameContext
+  | TraceMiniGameContext;
+
+export type MiniGameRequestContext =
+  | Omit<HackMiniGameContext, 'rollSuccesses'>
+  | Omit<PaydataMiniGameContext, 'rollSuccesses'>
+  | Omit<EscapeMiniGameContext, 'rollSuccesses'>
+  | Omit<TraceMiniGameContext, 'rollSuccesses'>;
+
+/** État temps réel d'un mini-jeu, affiché au joueur et en miroir chez le MJ. */
+export interface MiniGameState {
+  id: string;
+  kind: MiniGameKind;
+  status: MiniGameStatus;
+  action: string;
+  startedAt: number;
+  completedAt?: number;
+  params: MiniGameParams;
+  progress: MiniGameProgress;
+  context: MiniGameContext;
 }
 
 export interface SessionMeta {

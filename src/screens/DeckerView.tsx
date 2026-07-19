@@ -4,6 +4,7 @@ import { ICE_LABELS, NODE_TYPE_LABELS } from '../components/map/shapes';
 import { DieuDial, MonitorBoxes } from '../components/decker/Monitors';
 import { RollModal, type RollRequest } from '../components/decker/RollModal';
 import { PresenceDot, SideColumn, useIsShort } from '../components/ui';
+import { SoundToggle } from '../components/SoundToggle';
 import { PERSONA } from '../data/persona';
 import { MARK_RIGHTS } from '../data/security';
 import {
@@ -29,6 +30,7 @@ import {
   reboot,
 } from '../game/threat';
 import { adjacentNodeIds } from '../game/graph';
+import { applyTraceJamming } from '../game/minigames';
 import {
   cybercombatPool,
   escapePool,
@@ -145,6 +147,10 @@ export default function DeckerView() {
       withComplication: true,
       successPenalty,
       apply: (s) => applyHack(code, hackTargetId, approach, s),
+      miniGame: {
+        kind: approach === 'corruption' ? 'injection' : 'overload',
+        context: { type: 'hack', nodeId: hackTargetId, approach },
+      },
     });
   };
 
@@ -167,6 +173,38 @@ export default function DeckerView() {
       withComplication: true,
       successPenalty,
       apply: (s) => applyEscape(code, s),
+      miniGame: { kind: 'extraction', context: { type: 'escape' } },
+    });
+
+  const startPaydataDecrypt = () => {
+    if (!deckerNodeId || !currentNode) return;
+    setRoll({
+      action: `Décryptage paydata — ${knownLabel(deckerNodeId)}`,
+      lines: infiltrationPool(currentNode, mode, environment),
+      withComplication: true,
+      successPenalty,
+      apply: async (successes) => {
+        if (successes < 1) return 'échec — chiffrement intact';
+        const text = await readPaydata(code, deckerNodeId);
+        if (!text) return 'aucune paydata exploitable';
+        setRevealedInfo({ title: 'Paydata', text });
+        return 'paydata déchiffrée';
+      },
+      miniGame: {
+        kind: 'decryption',
+        context: { type: 'paydata', nodeId: deckerNodeId },
+      },
+    });
+  };
+
+  const startJamming = () =>
+    setRoll({
+      action: 'Brouillage anti-pistage',
+      lines: escapePool(mode),
+      withComplication: true,
+      successPenalty,
+      apply: (s) => applyTraceJamming(code, s),
+      miniGame: { kind: 'jamming', context: { type: 'trace' } },
     });
 
   const startRepair = () =>
@@ -179,12 +217,6 @@ export default function DeckerView() {
 
   const doMove = async () => {
     if (selectedNodeId && (await moveDeckerTo(code, selectedNodeId))) setSelection(null);
-  };
-
-  const doReadPaydata = async () => {
-    if (!deckerNodeId) return;
-    const text = await readPaydata(code, deckerNodeId);
-    if (text) setRevealedInfo({ title: 'Paydata', text });
   };
 
   const doControlDevice = async () => {
@@ -241,6 +273,7 @@ export default function DeckerView() {
         >
           Se déconnecter
         </button>
+        <SoundToggle />
       </header>
 
       {/* Bandeau deck détruit */}
@@ -319,6 +352,9 @@ export default function DeckerView() {
             <p>
               🍀 Chance : <span className="text-neon-green">{luck}</span>/{PERSONA.chance}
             </p>
+            {(decker.traceDelay ?? 0) > 0 && (
+              <p className="text-neon-magenta">◌ Trace brouillée : {decker.traceDelay} tour(s)</p>
+            )}
           </div>
 
           <DieuDial
@@ -426,13 +462,20 @@ export default function DeckerView() {
                 ◇ Analyser la GLACE
               </button>
             )}
+            {selectedIcon?.kind === 'ice' &&
+              selectedIcon.revealed &&
+              selectedIcon.iceType === 'traceuse' && (
+                <button className="btn btn-magenta text-xs" disabled={actionsLocked} onClick={startJamming}>
+                  ◌ Brouiller la Traceuse
+                </button>
+              )}
 
             <button
               className="btn text-xs"
               disabled={actionsLocked || !currentNode || currentNode.marks < 2 || !currentNode.paydata}
-              onClick={() => void doReadPaydata()}
+              onClick={startPaydataDecrypt}
             >
-              ▤ Lire le paydata (≥ 2 Marks)
+              ▤ Décrypter le paydata (≥ 2 Marks)
             </button>
             <button
               className="btn text-xs"
@@ -554,15 +597,30 @@ export default function DeckerView() {
 
       {/* Convergence du DIEU : plein écran rouge */}
       {convergence && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-[#3a0510]/95">
-          <p className="pulse-alert glow-text text-4xl tracking-[0.25em] text-neon-red">
-            LE DIEU CONVERGE
-          </p>
-          <p className="max-w-md text-center text-sm text-neon-red/80">
-            Position physique compromise. Éjection forcée de la Matrice.
-            <br />
-            Le MJ reprend la main.
-          </p>
+        <div className="convergence-screen fixed inset-0 z-50 flex items-center justify-center overflow-hidden p-5">
+          <div className="convergence-frame relative w-full max-w-2xl border border-neon-red/70 bg-abyss/70 p-6 text-center">
+            <div className="mb-5 flex items-center justify-between text-[10px] tracking-[0.25em] text-neon-red/70">
+              <span>GRID OVERWATCH DIVISION</span>
+              <span>TRACE // 100%</span>
+            </div>
+            <p className="glitch-text text-4xl font-bold tracking-[0.18em] text-neon-red sm:text-6xl">
+              LE DIEU CONVERGE
+            </p>
+            <div className="mx-auto my-5 h-px max-w-md bg-neon-red shadow-[0_0_16px_var(--color-neon-red)]" />
+            <p className="text-sm tracking-wider text-neon-red/90">
+              POSITION PHYSIQUE COMPROMISE
+            </p>
+            <p className="mt-2 text-xs leading-6 text-ink-dim">
+              Éjection forcée de la Matrice · Liaison persona interrompue
+              <br />
+              Le MJ reprend la main.
+            </p>
+            <div className="mt-6 grid grid-cols-3 gap-2 text-[10px] text-neon-red/60">
+              <span className="border border-neon-red/20 p-2">DECK // LOCK</span>
+              <span className="border border-neon-red/20 p-2">SIGNAL // LOST</span>
+              <span className="border border-neon-red/20 p-2">GOD // ONLINE</span>
+            </div>
+          </div>
         </div>
       )}
     </div>

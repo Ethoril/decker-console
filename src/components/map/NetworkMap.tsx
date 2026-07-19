@@ -506,6 +506,7 @@ export default function NetworkMap({
             return (
               <g
                 key={iconId}
+                className={icon.kind === 'ice' ? 'ice-threat' : undefined}
                 transform={`translate(${pos.x} ${pos.y})`}
                 onPointerDown={() => (downHit.current = { kind: 'icon', id: iconId })}
                 style={{ cursor: 'pointer' }}

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { clearNetwork, exportNetwork, importNetwork } from '../../sync/write';
 import type { NetworkExport } from '../../types';
+import { NETWORK_TEMPLATES, type NetworkTemplate } from '../../data/networkTemplates';
 
 /** Export / import JSON du réseau (nodes + links + icons + position decker). */
 export function ExportImportModal({ code, onClose }: { code: string; onClose: () => void }) {
@@ -48,6 +49,18 @@ export function ExportImportModal({ code, onClose }: { code: string; onClose: ()
     setMessage('Réseau vidé.');
   };
 
+  const loadTemplate = async (template: NetworkTemplate) => {
+    if (
+      !window.confirm(
+        `Charger « ${template.name} » ? Le réseau actuel sera intégralement remplacé.`,
+      )
+    ) {
+      return;
+    }
+    await importNetwork(code, template.data);
+    setMessage(`Réseau « ${template.name} » chargé.`);
+  };
+
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-abyss/80" />
@@ -60,6 +73,34 @@ export function ExportImportModal({ code, onClose }: { code: string; onClose: ()
           <button className="btn px-2 py-0.5 text-xs" onClick={onClose}>
             ✕
           </button>
+        </div>
+        <div>
+          <h3 className="panel-title">Bibliothèque de réseaux</h3>
+          <div className="grid gap-2 sm:grid-cols-3">
+            {NETWORK_TEMPLATES.map((template) => (
+              <button
+                key={template.id}
+                className="btn h-auto min-h-24 text-left"
+                onClick={() => void loadTemplate(template)}
+              >
+                <span className="block text-xs text-neon-cyan">{template.name}</span>
+                <span
+                  className={`my-1 block text-[9px] tracking-wider uppercase ${
+                    template.difficulty === 'Hostile'
+                      ? 'text-neon-red'
+                      : template.difficulty === 'Standard'
+                        ? 'text-neon-amber'
+                        : 'text-neon-green'
+                  }`}
+                >
+                  {template.difficulty}
+                </span>
+                <span className="block text-[10px] leading-4 text-ink-dim">
+                  {template.description}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
         <textarea
           className="field min-h-40 flex-1 resize-none text-xs"

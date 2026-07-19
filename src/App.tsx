@@ -7,6 +7,7 @@ import Home from './screens/Home';
 import GmView from './screens/GmView';
 import DeckerView from './screens/DeckerView';
 import { PortraitOverlay } from './components/ui';
+import { SessionSoundscape } from './components/SessionSoundscape';
 
 function ConfigMissing() {
   return (
@@ -66,8 +67,9 @@ export default function App() {
   else screen = <DeckerView />;
 
   return (
-    <div className="h-full overflow-hidden">
+    <div className="screen-shell h-full overflow-hidden">
       {screen}
+      {code && role && <SessionSoundscape />}
       <PortraitOverlay />
     </div>
   );

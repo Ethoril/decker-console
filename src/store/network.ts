@@ -6,6 +6,7 @@ import type {
   LogEntry,
   Link,
   MatrixIcon,
+  MiniGameState,
   NetworkNode,
   RollRecord,
   SessionMeta,
@@ -21,6 +22,7 @@ interface NetworkStore {
   environment: EnvironmentState;
   countdowns: CountdownsState;
   lastRoll: RollRecord | null;
+  minigame: MiniGameState | null;
   log: Record<string, LogEntry>;
   reset: () => void;
 }
@@ -34,6 +36,7 @@ const empty = {
   environment: {} as EnvironmentState,
   countdowns: {} as CountdownsState,
   lastRoll: null,
+  minigame: null,
   log: {},
 };
 
@@ -54,4 +57,5 @@ export const deckerDefaults = {
   rebootCountdown: 0,
   trapped: false,
   convergence: false,
+  traceDelay: 0,
 };

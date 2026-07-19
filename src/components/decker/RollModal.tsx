@@ -1,10 +1,36 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { PERSONA } from '../../data/persona';
 import { countSuccesses, rerollFailures, rollD6, rollDice } from '../../game/dice';
 import { poolTotal } from '../../game/pools';
 import { publishRollAndLog, spendLuck } from '../../game/actions';
+import {
+  MINI_GAME_LABELS,
+  createMiniGame,
+  resolveMiniGame,
+  startMiniGame,
+} from '../../game/minigames';
+import { applyMatrixDamage } from '../../game/threat';
 import { deckerDefaults, useNetworkStore } from '../../store/network';
-import type { PoolLine, RollRecord } from '../../types';
+import { updateMiniGame } from '../../sync/write';
+import type {
+  DecryptionParams,
+  ExtractionParams,
+  InjectionParams,
+  JammingParams,
+  MiniGameContext,
+  MiniGameKind,
+  MiniGameRequestContext,
+  MiniGameState,
+  OverloadParams,
+  PoolLine,
+  RollRecord,
+} from '../../types';
+import { InjectionGame } from '../../minigames/injection/InjectionGame';
+import { MiniGameShell } from '../../minigames/MiniGameShell';
+import { OverloadGame } from '../../minigames/overload/OverloadGame';
+import { DecryptionGame } from '../../minigames/decryption/DecryptionGame';
+import { ExtractionGame } from '../../minigames/extraction/ExtractionGame';
+import { JammingGame } from '../../minigames/jamming/JammingGame';
 
 export interface RollRequest {
   /** Libellé du test, ex. « Hack (Corruption) — Serveur RH ». */
@@ -17,6 +43,7 @@ export interface RollRequest {
   successPenalty?: number;
   /** Applique l'effet du jet et retourne le résumé (outcome). */
   apply: (successes: number) => Promise<string>;
+  miniGame?: { kind: MiniGameKind; context: MiniGameRequestContext };
 }
 
 /**
@@ -33,12 +60,29 @@ export function RollModal({
   onClose: () => void;
 }) {
   const luck = useNetworkStore((s) => s.decker.luck ?? deckerDefaults.luck);
+  const remoteGame = useNetworkStore((s) => s.minigame);
   const [lines, setLines] = useState<PoolLine[]>(request.lines);
   const [luckOn, setLuckOn] = useState(false);
   const [dice, setDice] = useState<number[] | null>(null);
   const [complication, setComplication] = useState(0);
   const [rerolled, setRerolled] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [activeGame, setActiveGame] = useState<MiniGameState | null>(null);
+  const [miniOutcome, setMiniOutcome] = useState<{ won: boolean; text: string } | null>(null);
+
+  useEffect(() => {
+    if (
+      activeGame &&
+      remoteGame?.id === activeGame.id &&
+      remoteGame.status !== 'active' &&
+      !miniOutcome
+    ) {
+      setMiniOutcome({
+        won: remoteGame.status === 'success',
+        text: 'Résolution appliquée par le MJ.',
+      });
+    }
+  }, [activeGame, miniOutcome, remoteGame]);
 
   const pool = poolTotal(lines);
   const successOn: 4 | 5 = luckOn ? 4 : 5;
@@ -85,6 +129,116 @@ export function RollModal({
       setBusy(false);
     }
   };
+
+  const doStartMiniGame = async () => {
+    if (!dice || busy || !request.miniGame) return;
+    setBusy(true);
+    try {
+      const context = {
+        ...request.miniGame.context,
+        rollSuccesses: successes,
+      } as MiniGameContext;
+      const game = createMiniGame(request.action, request.miniGame.kind, context);
+      const record: RollRecord = {
+        ts: Date.now(),
+        action: request.action,
+        lines: lines.filter((l) => l.enabled).map(({ label, value }) => ({ label, value })),
+        pool,
+        dice,
+        successes,
+        successOn,
+        luckUsed: luckOn,
+        rerolled,
+        complication,
+        outcome: `${MINI_GAME_LABELS[game.kind]} lancé — résolution en cours`,
+      };
+      await publishRollAndLog(code, record);
+      await startMiniGame(code, game);
+      setActiveGame(game);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const finishMiniGame = useCallback(async (won: boolean) => {
+    if (!activeGame || miniOutcome) return;
+    setBusy(true);
+    try {
+      const text = await resolveMiniGame(code, activeGame, won);
+      setMiniOutcome({ won, text });
+    } finally {
+      setBusy(false);
+    }
+  }, [activeGame, code, miniOutcome]);
+
+  const reportProgress = useCallback(
+    (progress: MiniGameState['progress']) => void updateMiniGame(code, { progress }),
+    [code],
+  );
+  const reportResult = useCallback(
+    (won: boolean) => void finishMiniGame(won),
+    [finishMiniGame],
+  );
+
+  if (activeGame) {
+    const common = {
+      onProgress: reportProgress,
+      onResult: reportResult,
+    };
+    let gameView;
+    switch (activeGame.kind) {
+      case 'injection':
+        gameView = <InjectionGame params={activeGame.params as InjectionParams} {...common} />;
+        break;
+      case 'overload':
+        gameView = (
+          <OverloadGame
+            params={activeGame.params as OverloadParams}
+            {...common}
+            onMiss={() => void applyMatrixDamage(code, 1, 'Surcharge instable')}
+          />
+        );
+        break;
+      case 'decryption':
+        gameView = <DecryptionGame params={activeGame.params as DecryptionParams} {...common} />;
+        break;
+      case 'extraction':
+        gameView = <ExtractionGame params={activeGame.params as ExtractionParams} {...common} />;
+        break;
+      case 'jamming':
+        gameView = <JammingGame params={activeGame.params as JammingParams} {...common} />;
+        break;
+    }
+    return (
+      <MiniGameShell
+        title={MINI_GAME_LABELS[activeGame.kind]}
+        subtitle={`${request.action} · difficulté issue du jet : ${successes} succès`}
+      >
+        {gameView}
+        {miniOutcome && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-abyss/85 p-4">
+            <div
+              className={`w-full max-w-sm rounded border bg-panel p-5 text-center ${
+                miniOutcome.won ? 'border-neon-green' : 'border-neon-red'
+              }`}
+            >
+              <p
+                className={`glow-text mb-2 text-xl ${
+                  miniOutcome.won ? 'text-neon-green' : 'text-neon-red'
+                }`}
+              >
+                {miniOutcome.won ? 'SÉQUENCE RÉUSSIE' : 'SÉQUENCE REJETÉE'}
+              </p>
+              <p className="mb-4 text-xs text-ink-dim">{miniOutcome.text}</p>
+              <button className="btn btn-cyan w-full" onClick={onClose}>
+                Retour à la carte
+              </button>
+            </div>
+          </div>
+        )}
+      </MiniGameShell>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center p-3">
@@ -173,13 +327,32 @@ export function RollModal({
               ↻ Relancer les échecs — {PERSONA.deck.name}{' '}
               {rerolled ? '(utilisée)' : '(1×/test)'}
             </button>
-            <button
-              className="btn btn-cyan py-3 text-sm"
-              disabled={busy}
-              onClick={() => void doValidate()}
-            >
-              {busy ? '…' : 'Valider le résultat'}
-            </button>
+            {request.miniGame ? (
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  className="btn py-3 text-xs"
+                  disabled={busy}
+                  onClick={() => void doValidate()}
+                >
+                  Résolution directe
+                </button>
+                <button
+                  className="btn btn-magenta py-3 text-xs"
+                  disabled={busy}
+                  onClick={() => void doStartMiniGame()}
+                >
+                  {MINI_GAME_LABELS[request.miniGame.kind]}
+                </button>
+              </div>
+            ) : (
+              <button
+                className="btn btn-cyan py-3 text-sm"
+                disabled={busy}
+                onClick={() => void doValidate()}
+              >
+                {busy ? '…' : 'Valider le résultat'}
+              </button>
+            )}
           </>
         )}
       </div>
