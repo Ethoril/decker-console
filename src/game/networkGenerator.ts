@@ -1,4 +1,4 @@
-import type { NetworkExport, NetworkNode, NodeType } from '../types';
+import type { MatrixIcon, NetworkExport, NetworkNode, NodeType } from '../types';
 
 export type GeneratorDifficulty = 'low' | 'standard' | 'high';
 
@@ -35,6 +35,56 @@ const BASE_SECURITY: Record<GeneratorDifficulty, number> = {
 
 const clampSecurity = (value: number) => Math.max(1, Math.min(10, value));
 
+function generateSecurityIcons(
+  difficulty: GeneratorDifficulty,
+  nodes: Record<string, NetworkNode>,
+  contentNodeIds: string[],
+): Record<string, MatrixIcon> {
+  const rankedTargets = [...contentNodeIds].sort((a, b) => {
+    const securityDifference = nodes[b].security - nodes[a].security;
+    return securityDifference || a.localeCompare(b);
+  });
+  const strongest = rankedTargets[0] ?? 'gateway';
+  const deepest = contentNodeIds.at(-1) ?? 'gateway';
+  const middle = contentNodeIds[Math.floor(contentNodeIds.length / 2)] ?? strongest;
+
+  const icons: Record<string, MatrixIcon> = {
+    patrol: {
+      kind: 'ice', nodeId: 'gateway', iceType: 'patrouilleuse',
+      revealed: false, visibleToPlayer: true, label: 'Sentinelle', condition: 6,
+    },
+  };
+
+  if (difficulty !== 'low') {
+    icons.blocker = {
+      kind: 'ice', nodeId: strongest, iceType: 'bloqueuse',
+      revealed: false, visibleToPlayer: false, label: 'Verrou', condition: 6,
+    };
+  }
+
+  if (difficulty === 'high') {
+    icons.tracer = {
+      kind: 'ice', nodeId: middle, iceType: 'traceuse',
+      revealed: false, visibleToPlayer: false, label: 'Limier', condition: 6,
+    };
+    icons.tar = {
+      kind: 'ice', nodeId: deepest, iceType: 'potDeColle',
+      revealed: false, visibleToPlayer: false, label: 'Goudron', condition: 6,
+    };
+    icons.killer = {
+      kind: 'ice', nodeId: strongest, iceType: 'tueuse',
+      revealed: false, visibleToPlayer: false, label: 'Cerbère', condition: 8,
+    };
+    icons.spider = {
+      kind: 'spider', nodeId: strongest, iceType: null,
+      revealed: true, visibleToPlayer: false, label: 'Spider de sécurité',
+      condition: 8, atkPool: 13, defPool: 11,
+    };
+  }
+
+  return icons;
+}
+
 /**
  * Générateur local sans IA et sans hasard : les mêmes entrées produisent
  * strictement le même graphe à trois branches.
@@ -62,6 +112,7 @@ export function generateNetwork(
   const lanes = [100, 280, 460];
   let itemIndex = 0;
   let linkIndex = 2;
+  const contentNodeIds: string[] = [];
 
   for (const item of GENERATOR_ITEMS) {
     const count = Math.max(0, Math.floor(counts[item.id] ?? 0));
@@ -80,6 +131,7 @@ export function generateNetwork(
         ...(item.deviceInfo ? { deviceInfo: item.deviceInfo } : {}),
         ...(item.paydata ? { paydata: item.paydata } : {}),
       };
+      contentNodeIds.push(nodeId);
       links[`link_${linkIndex}`] = { from: branchEnds[branch], to: nodeId };
       branchEnds[branch] = nodeId;
       itemIndex += 1;
@@ -89,7 +141,7 @@ export function generateNetwork(
 
   return {
     network: { nodes, links },
-    icons: null,
+    icons: generateSecurityIcons(difficulty, nodes, contentNodeIds),
     decker: { nodeId: 'entry' },
   };
 }

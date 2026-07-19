@@ -140,9 +140,9 @@ export function ExportImportModal({ code, onClose }: { code: string; onClose: ()
                 value={difficulty}
                 onChange={(event) => setDifficulty(event.target.value as GeneratorDifficulty)}
               >
-                <option value="low">Faible</option>
-                <option value="standard">Standard</option>
-                <option value="high">Élevée</option>
+                <option value="low">Faible — 1 GLACE</option>
+                <option value="standard">Standard — 2 GLACES</option>
+                <option value="high">Élevée — 4 GLACES + Spider</option>
               </select>
             </label>
             <button
@@ -174,7 +174,7 @@ export function ExportImportModal({ code, onClose }: { code: string; onClose: ()
             Générer le réseau ({selectedCount} élément{selectedCount > 1 ? 's' : ''})
           </button>
           <p className="mt-2 text-[10px] text-ink-dim">
-            Même sélection, même réseau : point d’accès, passerelle et trois branches calculées localement.
+            Faible : 1 GLACE · Standard : 2 GLACES · Élevée : 4 GLACES + 1 Spider. Même sélection, même réseau.
           </p>
         </details>
         <textarea
