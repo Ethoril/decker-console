@@ -49,6 +49,8 @@ export interface RollRequest {
   hackTargetId?: string;
   /** Marks du nœud avant le hack — sert à ne proposer le déplacement que sur un gain réel d'accès. */
   hackMarksBefore?: number;
+  /** Mini-jeu imposé par le MJ sur le nœud cible ; court-circuite pickMiniGameKind. */
+  forcedMinigame?: MiniGameKind | null;
 }
 
 type AutomaticResolution =
@@ -156,7 +158,7 @@ export function RollModal({
         ...request.miniGame.context,
         rollSuccesses: successes,
       } as MiniGameContext;
-      const kind = pickMiniGameKind(request.miniGame.kind);
+      const kind = request.forcedMinigame ?? pickMiniGameKind(request.miniGame.kind);
       const game = createMiniGame(request.action, kind, context, difficultySuccesses);
       const record: RollRecord = {
         ts: Date.now(),
@@ -355,6 +357,7 @@ export function RollModal({
               <div className="flex flex-col gap-2">
                 <p className={`text-center text-[11px] ${resolution.type === 'direct' ? 'text-neon-cyan' : 'text-neon-magenta'}`}>
                   {resolution.label}
+                  {request.forcedMinigame && resolution.type === 'minigame' && ` (Mini-jeu forcé : ${MINI_GAME_LABELS[request.forcedMinigame]})`}
                 </p>
                 <button
                   className={`btn py-3 text-xs ${resolution.type === 'minigame' ? 'btn-magenta' : 'btn-cyan'}`}

@@ -29,6 +29,9 @@ export interface NetworkNode {
   marks: number; // 0..4 — affiché, non modifiable par le joueur en Phase 1
   paydata?: string | null;
   deviceInfo?: string | null;
+  /** Mini-jeu imposé par le MJ pour les actions sur ce nœud (hack, paydata).
+   *  null / absent = sélection automatique (pickMiniGameKind). */
+  forcedMinigame?: MiniGameKind | null;
 }
 
 export interface Link {

@@ -232,6 +232,7 @@ export default function DeckerView() {
       },
       hackTargetId,
       hackMarksBefore: target.marks,
+      forcedMinigame: target.forcedMinigame ?? null,
     });
   };
 
@@ -275,6 +276,7 @@ export default function DeckerView() {
         kind: 'decryption',
         context: { type: 'paydata', nodeId: deckerNodeId },
       },
+      forcedMinigame: currentNode.forcedMinigame ?? null,
     });
   };
 

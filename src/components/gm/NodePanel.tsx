@@ -2,14 +2,20 @@ import { NODE_TYPE_LABELS } from '../map/shapes';
 import { SECURITY_TABLE } from '../../data/security';
 import { triggerCountermeasure } from '../../game/threat';
 import { deleteNode, setDeckerNode, updateNode } from '../../sync/write';
-import type { NetworkNode, NodeState, NodeType } from '../../types';
+import type { NetworkNode, NodeState, NodeType, MiniGameKind } from '../../types';
 import { CommitField, NumberField, SelectField } from './fields';
+import { MINI_GAME_LABELS } from '../../game/minigames';
 
 const STATE_LABELS: Array<[NodeState, string]> = [
   ['hidden', 'Caché'],
   ['spotted', 'Repéré'],
   ['infiltrated', 'Infiltré'],
   ['alerted', 'En alerte'],
+];
+
+const FORCED_OPTIONS: Array<[string, string]> = [
+  ['auto', 'Automatique (défaut)'],
+  ...(Object.entries(MINI_GAME_LABELS) as Array<[MiniGameKind, string]>),
 ];
 
 export function NodePanel({
@@ -51,10 +57,17 @@ export function NodePanel({
             max={10}
             onChange={(security) => patch({ security })}
           />
+          <SelectField
+            label="Mini-jeu forcé"
+            value={node.forcedMinigame ?? 'auto'}
+            options={FORCED_OPTIONS}
+            onChange={(v) => patch({ forcedMinigame: v === 'auto' ? null : (v as MiniGameKind) })}
+          />
         </>
       ) : (
         <p className="mb-2 text-xs text-ink-dim">
           {node.label} · {NODE_TYPE_LABELS[node.type]} · S{node.security}
+          {node.forcedMinigame && ` · Forcé : ${MINI_GAME_LABELS[node.forcedMinigame]}`}
         </p>
       )}
 
