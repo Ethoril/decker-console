@@ -59,7 +59,7 @@ function describeAttack(a: AttackEvent): string {
 export default function DeckerView() {
   const code = useSessionStore((s) => s.code)!;
   const leave = useSessionStore((s) => s.leave);
-  const { meta, nodes, links, icons, decker, environment, log, lastAttack } =
+  const { meta, nodes, links, icons, decker, environment, log, lastAttack, lastAttackHydrated } =
     useNetworkStore();
   const short = useIsShort();
 
@@ -148,19 +148,23 @@ export default function DeckerView() {
   // journal, donc plus de faux positifs sur les actions du decker.
   const seenAttackId = useRef<string | null>(null);
   useEffect(() => {
-    if (!lastAttack) return;
-    // Première hydratation : on mémorise sans afficher (anti-rejeu au reload).
+    // On attend l'hydratation réelle du canal (pas la simple absence de valeur)
+    // pour ne pas confondre « store pas encore chargé » et « aucune attaque ».
+    if (!lastAttackHydrated) return;
+    // Premier passage après hydratation : on mémorise l'état courant sans
+    // afficher — attaque déjà présente au rechargement (anti-rejeu), ou absence
+    // d'attaque (on s'arme pour la prochaine, marquée par la sentinelle '').
     if (seenAttackId.current === null) {
-      seenAttackId.current = lastAttack.id;
+      seenAttackId.current = lastAttack ? lastAttack.id : '';
       return;
     }
-    if (lastAttack.id === seenAttackId.current) return;
+    if (!lastAttack || lastAttack.id === seenAttackId.current) return;
     seenAttackId.current = lastAttack.id;
     setActiveAttack({
       attacker: lastAttack.attacker,
       result: describeAttack(lastAttack),
     });
-  }, [lastAttack]);
+  }, [lastAttack, lastAttackHydrated]);
 
   const deckDown = deckCondition >= MONITORS.deck;
   const rebooting = rebootCountdown > 0;

@@ -24,6 +24,8 @@ interface NetworkStore {
   countdowns: CountdownsState;
   lastRoll: RollRecord | null;
   lastAttack: AttackEvent | null;
+  /** Passe à true dès la première réception du canal lastAttack (même null). */
+  lastAttackHydrated: boolean;
   minigame: MiniGameState | null;
   log: Record<string, LogEntry>;
   reset: () => void;
@@ -39,6 +41,7 @@ const empty = {
   countdowns: {} as CountdownsState,
   lastRoll: null,
   lastAttack: null,
+  lastAttackHydrated: false,
   minigame: null,
   log: {},
 };

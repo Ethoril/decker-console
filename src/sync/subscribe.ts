@@ -32,7 +32,14 @@ export function subscribeToSession(code: string, role: Role): () => void {
   sub('environment', (v) => useNetworkStore.setState({ environment: (v as never) ?? {} }));
   sub('countdowns', (v) => useNetworkStore.setState({ countdowns: (v as never) ?? {} }));
   sub('lastRoll', (v) => useNetworkStore.setState({ lastRoll: (v as never) ?? null }));
-  sub('lastAttack', (v) => useNetworkStore.setState({ lastAttack: (v as never) ?? null }));
+  sub('lastAttack', (v) =>
+    // La valeur et son flag d'hydratation sont posés atomiquement : le premier
+    // rendu qui voit lastAttackHydrated=true voit aussi la vraie valeur (ou
+    // null), ce qui évite toute course entre « pas encore chargé » et « aucune
+    // attaque ». Sans ça, la première attaque d'une session était avalée comme
+    // une hydratation et n'affichait pas de popup.
+    useNetworkStore.setState({ lastAttack: (v as never) ?? null, lastAttackHydrated: true }),
+  );
   sub('minigame', (v) => useNetworkStore.setState({ minigame: (v as never) ?? null }));
   sub('log', (v) => useNetworkStore.setState({ log: (v as never) ?? {} }));
 
