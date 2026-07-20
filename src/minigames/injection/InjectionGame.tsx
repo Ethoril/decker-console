@@ -97,6 +97,7 @@ export function InjectionGame({
   const [guess, setGuess] = useState<number[]>([]);
   const [attempts, setAttempts] = useState<Attempt[]>([]);
   const [finished, setFinished] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(true);
 
   const submit = () => {
     if (finished || guess.length !== params.sequenceLength) return;
@@ -117,6 +118,52 @@ export function InjectionGame({
       onResult(won);
     }
   };
+
+  if (showTutorial) {
+    return (
+      <div className="mx-auto flex h-full max-w-md flex-col justify-center gap-4 text-center p-4">
+        <div className="border border-neon-cyan/50 bg-panel p-6 rounded-lg shadow-[0_0_20px_rgba(46,230,255,0.15)] flex flex-col gap-4">
+          <div className="flex justify-between items-center text-[10px] tracking-[0.25em] text-neon-cyan uppercase font-bold">
+            <span>Tutoriel</span>
+            <span>Sécurité Matricielle</span>
+          </div>
+          
+          <h2 className="glitch-text text-xl font-bold tracking-wider text-neon-cyan uppercase">
+            Injection de Code
+          </h2>
+          
+          <div className="mx-auto h-px w-full bg-neon-cyan/30 my-1" />
+          
+          <p className="text-xs text-ink leading-relaxed text-left">
+            Devinez la séquence de glyphes de sécurité du nœud pour y injecter votre code corrompu.
+          </p>
+
+          <div className="rounded bg-panel-2 p-3 text-[11px] text-ink-dim leading-relaxed text-left space-y-2">
+            <p>
+              ⚡ <strong className="text-neon-magenta">Action :</strong> Cliquez sur les glyphes du clavier pour composer un payload de <span className="text-neon-cyan font-bold">{params.sequenceLength}</span> glyphes, puis cliquez sur "Injecter Payload".
+            </p>
+            <p>
+              ⏱ <strong className="text-neon-cyan">Objectif :</strong> Trouvez la bonne combinaison en moins de <span className="text-neon-cyan font-bold">{params.maxAttempts}</span> essais.
+            </p>
+            <p>
+              ⚠ <strong className="text-neon-amber">Diagnostics :</strong> Les diodes vous guident après chaque tentative :
+              <br />
+              • <span className="text-neon-green font-bold">Vert (ALIGNÉ)</span> : le glyphe est correct et bien placé.
+              <br />
+              • <span className="text-neon-magenta font-bold">Magenta (DÉPLACÉ)</span> : le glyphe est présent dans le code secret mais mal placé.
+            </p>
+          </div>
+
+          <button
+            className="btn btn-cyan mt-2 py-3 text-xs font-bold tracking-widest uppercase cursor-pointer"
+            onClick={() => setShowTutorial(false)}
+          >
+            Démarrer l'injection
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto flex h-full max-w-3xl flex-col gap-3">

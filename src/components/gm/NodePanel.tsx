@@ -1,6 +1,6 @@
 import { NODE_TYPE_LABELS } from '../map/shapes';
 import { SECURITY_TABLE } from '../../data/security';
-import { triggerCountermeasure } from '../../game/threat';
+import { triggerCountermeasure, triggerNodeAlert } from '../../game/threat';
 import { deleteNode, setDeckerNode, updateNode } from '../../sync/write';
 import type { NetworkNode, NodeState, NodeType, MiniGameKind } from '../../types';
 import { CommitField, NumberField, SelectField } from './fields';
@@ -81,7 +81,13 @@ export function NodePanel({
             <button
               key={state}
               className={`btn px-1 py-1 text-[11px] ${node.state === state ? 'btn-cyan active' : ''}`}
-              onClick={() => patch({ state })}
+              onClick={() => {
+                if (state === 'alerted' && mode === 'game') {
+                  void triggerNodeAlert(code, nodeId);
+                } else {
+                  patch({ state });
+                }
+              }}
             >
               {text}
             </button>

@@ -81,10 +81,12 @@ export function DecryptionGame({
   const puzzle = useMemo(() => createPuzzle(params.gridSize), [params.gridSize]);
   const [tiles, setTiles] = useState(puzzle.masks);
   const [seconds, setSeconds] = useState(params.timeLimit);
+  const [showTutorial, setShowTutorial] = useState(true);
   const finished = useRef(false);
   const connected = connectedCells(tiles, params.gridSize, puzzle.entry);
 
   useEffect(() => {
+    if (showTutorial) return;
     const timer = window.setInterval(() => {
       setSeconds((value) => {
         const next = value - 1;
@@ -96,7 +98,7 @@ export function DecryptionGame({
       });
     }, 1000);
     return () => window.clearInterval(timer);
-  }, [onResult]);
+  }, [onResult, showTutorial]);
 
   const turn = (index: number) => {
     if (finished.current) return;
@@ -118,6 +120,48 @@ export function DecryptionGame({
       return next;
     });
   };
+
+  if (showTutorial) {
+    return (
+      <div className="mx-auto flex h-full max-w-md flex-col justify-center gap-4 text-center p-4">
+        <div className="border border-neon-cyan/50 bg-panel p-6 rounded-lg shadow-[0_0_20px_rgba(46,230,255,0.15)] flex flex-col gap-4">
+          <div className="flex justify-between items-center text-[10px] tracking-[0.25em] text-neon-cyan uppercase font-bold">
+            <span>Tutoriel</span>
+            <span>Sécurité Matricielle</span>
+          </div>
+          
+          <h2 className="glitch-text text-xl font-bold tracking-wider text-neon-cyan uppercase">
+            Décryptage de Fichiers
+          </h2>
+          
+          <div className="mx-auto h-px w-full bg-neon-cyan/30 my-1" />
+          
+          <p className="text-xs text-ink leading-relaxed text-left">
+            Le fichier recherché (Paydata) est protégé par un verrouillage de flux de circuit fragmenté.
+          </p>
+
+          <div className="rounded bg-panel-2 p-3 text-[11px] text-ink-dim leading-relaxed text-left space-y-2">
+            <p>
+              ⚡ <strong className="text-neon-magenta">Action :</strong> Touchez ou cliquez sur les segments de circuit pour les faire pivoter.
+            </p>
+            <p>
+              ⏱ <strong className="text-neon-cyan">Objectif :</strong> Reliez l'entrée <span className="text-neon-green font-bold">IN</span> à la sortie <span className="text-neon-magenta font-bold">OUT</span> pour alimenter et décrypter le circuit complet.
+            </p>
+            <p>
+              ⚠ <strong className="text-neon-red">Menace :</strong> Vous devez terminer la connexion avant la fin du chronomètre (<span className="text-neon-red font-bold">{params.timeLimit}s</span>).
+            </p>
+          </div>
+
+          <button
+            className="btn btn-cyan mt-2 py-3 text-xs font-bold tracking-widest uppercase cursor-pointer"
+            onClick={() => setShowTutorial(false)}
+          >
+            Démarrer le décryptage
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto flex h-full max-w-2xl flex-col gap-3">

@@ -538,7 +538,7 @@ export default function NetworkMap({
           >
             {/* Réticule extérieur rotatif */}
             <circle
-              r="11"
+              r="13"
               fill="none"
               stroke="var(--color-neon-cyan)"
               strokeWidth={1}
@@ -547,12 +547,16 @@ export default function NetworkMap({
               style={{ animationDuration: '8s' }}
             />
             {/* Viseurs orthogonaux */}
-            <line x1="-14" y1="0" x2="-7" y2="0" stroke="var(--color-neon-cyan)" strokeWidth={1.5} />
-            <line x1="7" y1="0" x2="14" y2="0" stroke="var(--color-neon-cyan)" strokeWidth={1.5} />
-            <line x1="0" y1="-14" x2="0" y2="-7" stroke="var(--color-neon-cyan)" strokeWidth={1.5} />
-            <line x1="0" y1="7" x2="0" y2="14" stroke="var(--color-neon-cyan)" strokeWidth={1.5} />
-            {/* Point central pulsant */}
-            <circle r="3" fill="var(--color-neon-cyan)" className="pulse-slow" />
+            <line x1="-16" y1="0" x2="-9" y2="0" stroke="var(--color-neon-cyan)" strokeWidth={1.5} />
+            <line x1="9" y1="0" x2="16" y2="0" stroke="var(--color-neon-cyan)" strokeWidth={1.5} />
+            <line x1="0" y1="-16" x2="0" y2="-9" stroke="var(--color-neon-cyan)" strokeWidth={1.5} />
+            <line x1="0" y1="9" x2="0" y2="16" stroke="var(--color-neon-cyan)" strokeWidth={1.5} />
+            {/* Silhouette du decker (hacker à capuche) */}
+            <path
+              d="M -8,6 C -8,2.5 -5,1.5 -4,-1 C -4,-5.5 -2.5,-7.5 0,-7.5 C 2.5,-7.5 4,-5.5 4,-1 C 5,1.5 8,2.5 8,6 Z"
+              fill="var(--color-neon-cyan)"
+              className="pulse-slow"
+            />
           </g>
         )}
       </svg>

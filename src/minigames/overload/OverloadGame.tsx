@@ -13,11 +13,13 @@ export function OverloadGame({
   const [misses, setMisses] = useState(0);
   const [consecutiveMisses, setConsecutiveMisses] = useState(0);
   const [flash, setFlash] = useState<'hit' | 'miss' | null>(null);
+  const [showTutorial, setShowTutorial] = useState(true);
   const direction = useRef(1);
   const previous = useRef<number | null>(null);
   const finished = useRef(false);
 
   useEffect(() => {
+    if (showTutorial) return;
     let frame = 0;
     const tick = (time: number) => {
       if (previous.current === null) previous.current = time;
@@ -33,7 +35,7 @@ export function OverloadGame({
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [hits, params.speed]);
+  }, [hits, params.speed, showTutorial]);
 
   const stopNeedle = () => {
     if (finished.current) return;
@@ -75,6 +77,48 @@ export function OverloadGame({
   };
 
   const left = 50 - params.zoneWidth * 50;
+
+  if (showTutorial) {
+    return (
+      <div className="mx-auto flex h-full max-w-md flex-col justify-center gap-4 text-center p-4">
+        <div className="border border-neon-cyan/50 bg-panel p-6 rounded-lg shadow-[0_0_20px_rgba(46,230,255,0.15)] flex flex-col gap-4">
+          <div className="flex justify-between items-center text-[10px] tracking-[0.25em] text-neon-cyan uppercase font-bold">
+            <span>Tutoriel</span>
+            <span>Sécurité Matricielle</span>
+          </div>
+          
+          <h2 className="glitch-text text-xl font-bold tracking-wider text-neon-cyan uppercase">
+            Surcharge Système
+          </h2>
+          
+          <div className="mx-auto h-px w-full bg-neon-cyan/30 my-1" />
+          
+          <p className="text-xs text-ink leading-relaxed text-left">
+            Surchargez les sous-systèmes de sécurité du nœud pour forcer l'accès.
+          </p>
+
+          <div className="rounded bg-panel-2 p-3 text-[11px] text-ink-dim leading-relaxed text-left space-y-2">
+            <p>
+              ⚡ <strong className="text-neon-magenta">Action :</strong> Touchez ou cliquez sur le bouton "COUPER LE FLUX" lorsque l'aiguille se trouve dans la zone verte.
+            </p>
+            <p>
+              ⏱ <strong className="text-neon-cyan">Objectif :</strong> Stabilisez le flux réseau en réussissant <span className="text-neon-cyan font-bold">{params.requiredHits}</span> paliers. La vitesse de l'aiguille augmente après chaque réussite !
+            </p>
+            <p>
+              ⚠ <strong className="text-neon-red">Menace :</strong> Chaque raté inflige 1 dégât au cyberdeck. Deux ratés consécutifs font échouer la surcharge.
+            </p>
+          </div>
+
+          <button
+            className="btn btn-cyan mt-2 py-3 text-xs font-bold tracking-widest uppercase cursor-pointer"
+            onClick={() => setShowTutorial(false)}
+          >
+            Démarrer la surcharge
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto flex h-full max-w-3xl flex-col items-center justify-center gap-6">

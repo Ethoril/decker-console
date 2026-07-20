@@ -6,6 +6,7 @@ import { deckerDefaults, useNetworkStore } from '../store/network';
 import { appendLog, publishRoll, setDeckerNode, updateDecker } from '../sync/write';
 import type { ConnectionMode, RollRecord } from '../types';
 import { adjacentNodeIds } from './graph';
+import { triggerNodeAlert } from './threat';
 
 /** Label d'un nœud tel que le decker le connaît (fog : « ??? » si spotted). */
 export function knownLabel(nodeId: string | null | undefined): string {
@@ -96,14 +97,7 @@ export async function applyHack(
   }
 
   if (approach === 'corruption') {
-    await update(ref(getDb(), `sessions/${code}/network/nodes/${nodeId}`), {
-      state: 'alerted',
-    });
-    await appendLog(
-      code,
-      'alert',
-      `Corruption échouée : « ${node.label} » passe en ALERTE — decker détecté.`,
-    );
+    await triggerNodeAlert(code, nodeId);
     return 'échec — nœud en alerte';
   }
   // Force Brute : dégâts = succès excédentaires du système (jet MJ, automatisé en Phase 3).

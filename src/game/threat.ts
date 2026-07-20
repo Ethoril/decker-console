@@ -15,9 +15,11 @@ import {
   setIntervention,
   updateDecker,
   updateIcon,
+  updateNode,
 } from '../sync/write';
 import { countSuccesses, rollDice } from './dice';
 import { defensePoolSize } from './pools';
+import { getNextStepTowards } from './graph';
 
 const d = () => useNetworkStore.getState().decker;
 
@@ -278,6 +280,57 @@ async function spawnIcons(
     'alert',
     `${count} ${kind === 'ice' ? 'GLACE(s)' : 'Spider'} appara${count > 1 ? 'issent' : 'ît'} sur « ${node?.label ?? '?'} » !`,
   );
+}
+
+
+/**
+ * Alerte un nœud : passe son état à 'alerted', déclenche automatiquement
+ * sa contre-mesure et déplace toutes les GLACES qui n'y sont pas déjà d'un nœud
+ * vers le decker (s'il y a un chemin).
+ */
+export async function triggerNodeAlert(code: string, nodeId: string): Promise<void> {
+  const { nodes, decker, links, icons } = useNetworkStore.getState();
+  const node = nodes[nodeId];
+  if (!node) return;
+
+  // 1. Passage en alerte
+  if (node.state !== 'alerted') {
+    await updateNode(code, nodeId, { state: 'alerted' });
+    await appendLog(
+      code,
+      'alert',
+      `« ${node.label} » passe en ALERTE — decker détecté.`,
+    );
+  }
+
+  // 2. Contre-mesure automatique
+  await triggerCountermeasure(code, nodeId);
+
+  // 3. Déplacement des GLACES vers le decker
+  const deckerNodeId = decker.nodeId;
+  if (!deckerNodeId) return;
+
+  const promises: Promise<unknown>[] = [];
+  for (const [iconId, icon] of Object.entries(icons)) {
+    if (icon.kind === 'ice' && icon.nodeId !== deckerNodeId) {
+      const nextNodeId = getNextStepTowards(icon.nodeId, deckerNodeId, links);
+      if (nextNodeId && nextNodeId !== icon.nodeId) {
+        promises.push(updateIcon(code, iconId, { nodeId: nextNodeId }));
+        const nextNode = nodes[nextNodeId];
+        promises.push(
+          appendLog(
+            code,
+            'system',
+            `${icon.label} se déplace vers « ${nextNode?.label ?? '??'} ».`,
+          ),
+        );
+      }
+    }
+  }
+
+  if (promises.length > 0) {
+    await Promise.all(promises);
+  }
 }
 
 // ------------------------------------------------------ Surveillance / DIEU
