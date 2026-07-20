@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import NetworkMap, { type MapSelection } from '../components/map/NetworkMap';
 import { ICE_LABELS, NODE_TYPE_LABELS } from '../components/map/shapes';
 import { DieuDial, MonitorBoxes } from '../components/decker/Monitors';
@@ -53,6 +53,9 @@ export default function DeckerView() {
   const [revealedInfo, setRevealedInfo] = useState<{ title: string; text: string } | null>(null);
   const [dismissedTrapped, setDismissedTrapped] = useState(false);
 
+  const [activeAlert, setActiveAlert] = useState<string | null>(null);
+  const [activeAttack, setActiveAttack] = useState<{ attacker: string; result: string } | null>(null);
+
   const luck = decker.luck ?? deckerDefaults.luck;
   const stun = decker.stun ?? deckerDefaults.stun;
   const physical = decker.physical ?? deckerDefaults.physical;
@@ -71,6 +74,96 @@ export default function DeckerView() {
       setDismissedTrapped(false);
     }
   }, [trapped]);
+
+  // Alerte bandeau rouge quand un nœud passe en alerte
+  const prevAlertedNodes = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    const alertedIds = Object.entries(nodes)
+      .filter(([, node]) => node.state === 'alerted')
+      .map(([id]) => id);
+
+    // Armement à la première hydratation non vide : évite de rejouer les
+    // alertes déjà existantes lors d'un rechargement de page (le store est
+    // vide au montage puis peuplé de façon asynchrone par Firebase).
+    if (prevAlertedNodes.current === null) {
+      if (Object.keys(nodes).length === 0) return;
+      prevAlertedNodes.current = new Set(alertedIds);
+      return;
+    }
+
+    const newlyAlerted = alertedIds.find((id) => !prevAlertedNodes.current!.has(id));
+    if (newlyAlerted) {
+      const nodeLabel = nodes[newlyAlerted]?.label || 'Nœud inconnu';
+      setActiveAlert(`ALERTE SYSTÈME : Nœud « ${nodeLabel} » compromis !`);
+    }
+    prevAlertedNodes.current = new Set(alertedIds);
+  }, [nodes]);
+
+  // Ferme l'alerte de nœud après 4 secondes
+  useEffect(() => {
+    if (activeAlert) {
+      const timer = setTimeout(() => {
+        setActiveAlert(null);
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [activeAlert]);
+
+  // Alerte popup quand le decker est attaqué. On n'ancre la détection que sur
+  // les préfixes STRUCTURELS émis par le moteur de menace (game/threat.ts) pour
+  // une attaque *subie* — jamais sur du texte générique, sinon les actions du
+  // decker (frapper une GLACE = « … : X dégât(s) ») ou volontaires (changement
+  // de mode = « … Étourdissant ») déclencheraient de faux positifs.
+  const prevLogsRef = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    const logIds = Object.keys(log);
+    // Armement à la première hydratation non vide (cf. alertes nœud ci-dessus) :
+    // évite de rejouer la dernière attaque historique après un rechargement.
+    if (prevLogsRef.current === null) {
+      if (logIds.length === 0) return;
+      prevLogsRef.current = new Set(logIds);
+      return;
+    }
+
+    const freshIds = logIds.filter((id) => !prevLogsRef.current!.has(id));
+    const freshEntries = freshIds
+      .map((id) => log[id])
+      .sort((a, b) => a.ts - b.ts);
+
+    for (const entry of freshEntries) {
+      const text = entry.text;
+      let attacker = '';
+      let result = '';
+
+      if (text.includes('attaque le decker') && text.includes('— esquivé')) {
+        const match = text.match(/^(.+) attaque le decker/);
+        attacker = match ? match[1] : 'Système';
+        const matchResult = text.match(/decker : (.+) — esquivé/);
+        result = 'Attaque esquivée' + (matchResult ? ` (${matchResult[1]})` : '');
+      } else if (text.includes('— paré par le Firewall')) {
+        const match = text.match(/^(.+?) : (.+) — paré/);
+        attacker = match ? match[1] : 'Contre-mesure';
+        result = 'Bloqué par le Firewall' + (match ? ` (${match[2]})` : '');
+      } else if (text.startsWith('Attaque de ')) {
+        // Dégâts / Étourdissant infligés au decker par une GLACE.
+        const match = text.match(/^Attaque de (.+?) : (.+)/);
+        if (match) {
+          attacker = match[1];
+          result = match[2];
+        }
+      } else if (text.startsWith('Le DIEU grille le deck')) {
+        const match = text.match(/^Le DIEU grille le deck : (.+)/);
+        attacker = 'Le DIEU (Convergence)';
+        result = match ? match[1] : '';
+      }
+
+      if (attacker && result) {
+        setActiveAttack({ attacker, result });
+      }
+    }
+
+    prevLogsRef.current = new Set(logIds);
+  }, [log]);
 
   const deckDown = deckCondition >= MONITORS.deck;
   const rebooting = rebootCountdown > 0;
@@ -267,7 +360,7 @@ export default function DeckerView() {
   );
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col relative">
       {/* Barre de titre */}
       <header className="flex h-11 shrink-0 items-center gap-3 border-b border-grid bg-panel px-3">
         <span className="text-xs tracking-[0.2em] text-neon-cyan uppercase">Decker</span>
@@ -294,6 +387,38 @@ export default function DeckerView() {
           <button className="btn btn-red px-2 py-0.5 text-[11px]" onClick={startRepair}>
             🔧 Réparer (Électronique + Logique)
           </button>
+        </div>
+      )}
+
+      {/* Bandeau rouge Alerte Nœud (auto-dismissing, clignotant) */}
+      {activeAlert && (
+        <div className="absolute top-11 left-0 right-0 z-30 pulse-alert border-y border-neon-red bg-neon-red/15 py-3 text-center text-sm text-neon-red font-bold uppercase tracking-wider shadow-[0_0_15px_rgba(255,59,92,0.25)]">
+          {activeAlert}
+        </div>
+      )}
+
+      {/* Bandeau d'Attaque (dismissible avec bouton OK) */}
+      {activeAttack && (
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 z-[35] w-full max-w-sm border border-neon-red bg-panel p-4 shadow-[0_0_25px_rgba(255,59,92,0.5)] rounded">
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between text-xs tracking-wider text-neon-red font-bold uppercase">
+              <span>⚠ DÉTECTION D'ATTAQUE</span>
+              <span className="text-[10px] opacity-70">SYSTÈMES DE SÉCURITÉ</span>
+            </div>
+            <div className="h-px bg-neon-red/30 my-1" />
+            <p className="text-xs text-ink leading-5">
+              Source de l'assaut : <span className="text-neon-cyan font-bold">{activeAttack.attacker}</span>
+            </p>
+            <p className="text-xs text-ink leading-5">
+              Résultat : <span className="text-neon-red font-bold">{activeAttack.result}</span>
+            </p>
+            <button
+              className="btn btn-red mt-2 w-full py-1 text-xs font-bold tracking-widest uppercase"
+              onClick={() => setActiveAttack(null)}
+            >
+              OK (Fermer)
+            </button>
+          </div>
         </div>
       )}
 
