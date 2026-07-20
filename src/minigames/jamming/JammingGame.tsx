@@ -21,6 +21,7 @@ export function JammingGame({
   const [seconds, setSeconds] = useState(params.duration);
   const [destroyed, setDestroyed] = useState(0);
   const [misses, setMisses] = useState(0);
+  const [showTutorial, setShowTutorial] = useState(true);
   const finished = useRef(false);
   const nextId = useRef(1);
   const spawnElapsed = useRef(0);
@@ -28,6 +29,7 @@ export function JammingGame({
   const missesRef = useRef(0);
 
   useEffect(() => {
+    if (showTutorial) return;
     const timer = window.setInterval(() => {
       spawnElapsed.current += 80;
       setPackets((current) => {
@@ -59,9 +61,10 @@ export function JammingGame({
       });
     }, 80);
     return () => window.clearInterval(timer);
-  }, [onResult, params.maxMisses, params.spawnInterval]);
+  }, [onResult, params.maxMisses, params.spawnInterval, showTutorial]);
 
   useEffect(() => {
+    if (showTutorial) return;
     const timer = window.setInterval(() => {
       setSeconds((value) => {
         const next = value - 1;
@@ -79,7 +82,7 @@ export function JammingGame({
       });
     }, 1000);
     return () => window.clearInterval(timer);
-  }, [onProgress, onResult, params.duration, params.maxMisses]);
+  }, [onProgress, onResult, params.duration, params.maxMisses, showTutorial]);
 
   const destroy = (id: number) => {
     if (finished.current) return;
@@ -90,6 +93,47 @@ export function JammingGame({
       return next;
     });
   };
+  if (showTutorial) {
+    return (
+      <div className="mx-auto flex h-full max-w-md flex-col justify-center gap-4 text-center p-4">
+        <div className="border border-neon-cyan/50 bg-panel p-6 rounded-lg shadow-[0_0_20px_rgba(46,230,255,0.15)] flex flex-col gap-4">
+          <div className="flex justify-between items-center text-[10px] tracking-[0.25em] text-neon-cyan uppercase font-bold">
+            <span>Tutoriel</span>
+            <span>Sécurité Matricielle</span>
+          </div>
+          
+          <h2 className="glitch-text text-xl font-bold tracking-wider text-neon-cyan uppercase">
+            Brouillage Anti-Pistage
+          </h2>
+          
+          <div className="mx-auto h-px w-full bg-neon-cyan/30 my-1" />
+          
+          <p className="text-xs text-ink leading-relaxed text-left">
+            Des paquets de pistage réseau (<strong>TRACE</strong>, <strong>PING</strong>, etc.) tentent de localiser votre position.
+          </p>
+
+          <div className="rounded bg-panel-2 p-3 text-[11px] text-ink-dim leading-relaxed text-left space-y-2">
+            <p>
+              ⚡ <strong className="text-neon-magenta">Action :</strong> Touchez ou cliquez sur les paquets de données pour les dissiper avant qu'ils n'atteignent la ligne rouge de votre Persona en bas.
+            </p>
+            <p>
+              ⏱ <strong className="text-neon-cyan">Objectif :</strong> Tenez bon pendant <span className="text-neon-cyan font-bold">{params.duration}s</span>.
+            </p>
+            <p>
+              ⚠ <strong className="text-neon-red">Menace :</strong> Si plus de <span className="text-neon-red font-bold">{params.maxMisses}</span> paquets fuient au-delà de la ligne rouge, le brouillage échoue.
+            </p>
+          </div>
+
+          <button
+            className="btn btn-cyan mt-2 py-3 text-xs font-bold tracking-widest uppercase cursor-pointer"
+            onClick={() => setShowTutorial(false)}
+          >
+            Démarrer le brouillage
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto flex h-full max-w-3xl flex-col gap-3">

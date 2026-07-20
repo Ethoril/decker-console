@@ -536,8 +536,23 @@ export default function NetworkMap({
             filter="url(#neon-glow)"
             pointerEvents="none"
           >
-            <circle r="9" fill="color-mix(in srgb, var(--color-neon-cyan) 25%, transparent)" stroke="var(--color-neon-cyan)" strokeWidth={2} className="pulse-slow" vectorEffect="non-scaling-stroke" />
-            <circle r="3.5" fill="var(--color-neon-cyan)" className="pulse-slow" />
+            {/* Réticule extérieur rotatif */}
+            <circle
+              r="11"
+              fill="none"
+              stroke="var(--color-neon-cyan)"
+              strokeWidth={1}
+              strokeDasharray="3 3"
+              className="animate-spin"
+              style={{ animationDuration: '8s' }}
+            />
+            {/* Viseurs orthogonaux */}
+            <line x1="-14" y1="0" x2="-7" y2="0" stroke="var(--color-neon-cyan)" strokeWidth={1.5} />
+            <line x1="7" y1="0" x2="14" y2="0" stroke="var(--color-neon-cyan)" strokeWidth={1.5} />
+            <line x1="0" y1="-14" x2="0" y2="-7" stroke="var(--color-neon-cyan)" strokeWidth={1.5} />
+            <line x1="0" y1="7" x2="0" y2="14" stroke="var(--color-neon-cyan)" strokeWidth={1.5} />
+            {/* Point central pulsant */}
+            <circle r="3" fill="var(--color-neon-cyan)" className="pulse-slow" />
           </g>
         )}
       </svg>

@@ -1,4 +1,4 @@
-import { applyHack, readPaydata } from './actions';
+import { applyHack } from './actions';
 import { applyEscape } from './threat';
 import { useNetworkStore } from '../store/network';
 import { appendLog, publishMiniGame, updateDecker, updateMiniGame } from '../sync/write';
@@ -114,16 +114,6 @@ export async function startMiniGame(code: string, game: MiniGameState): Promise<
   await appendLog(code, 'action', `Mini-jeu lancé : ${MINI_GAME_LABELS[game.kind]} — ${game.action}.`);
 }
 
-export async function applyPaydataDecrypt(
-  code: string,
-  nodeId: string,
-  successes: number,
-): Promise<string> {
-  if (successes < 1) return 'échec — chiffrement intact';
-  const paydata = await readPaydata(code, nodeId);
-  return paydata ? `PAYDATA : ${paydata}` : 'aucune paydata exploitable';
-}
-
 export async function applyTraceJamming(code: string, successes: number): Promise<string> {
   const decker = useNetworkStore.getState().decker;
   if (successes < 1) {
@@ -156,9 +146,6 @@ export async function resolveMiniGame(
         game.context.approach,
         successes,
       );
-      break;
-    case 'paydata':
-      outcome = await applyPaydataDecrypt(code, game.context.nodeId, won ? Math.max(1, successes) : 0);
       break;
     case 'escape':
       outcome = await applyEscape(code, successes);

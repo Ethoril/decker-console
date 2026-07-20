@@ -169,12 +169,6 @@ export interface HackMiniGameContext {
   rollSuccesses: number;
 }
 
-export interface PaydataMiniGameContext {
-  type: 'paydata';
-  nodeId: string;
-  rollSuccesses: number;
-}
-
 export interface EscapeMiniGameContext {
   type: 'escape';
   rollSuccesses: number;
@@ -187,13 +181,11 @@ export interface TraceMiniGameContext {
 
 export type MiniGameContext =
   | HackMiniGameContext
-  | PaydataMiniGameContext
   | EscapeMiniGameContext
   | TraceMiniGameContext;
 
 export type MiniGameRequestContext =
   | Omit<HackMiniGameContext, 'rollSuccesses'>
-  | Omit<PaydataMiniGameContext, 'rollSuccesses'>
   | Omit<EscapeMiniGameContext, 'rollSuccesses'>
   | Omit<TraceMiniGameContext, 'rollSuccesses'>;
 

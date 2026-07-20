@@ -123,6 +123,9 @@ export default function GmView() {
         <span className="text-xs tracking-[0.2em] text-neon-magenta uppercase">MJ</span>
         <span className="glow-text text-sm tracking-[0.25em] text-neon-cyan">{code}</span>
         <PresenceDot connected={meta?.deckerConnected ?? false} label="Decker" />
+        <span className="text-[10px] text-ink-dim select-none ml-1 opacity-70 font-mono">
+          {import.meta.env.VITE_APP_VERSION}
+        </span>
         <div className="ml-auto flex items-center gap-1">
           <button
             className={`btn px-2 py-1 text-xs ${mode === 'edit' ? 'btn-cyan active' : ''}`}

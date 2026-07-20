@@ -81,6 +81,8 @@ export default function DeckerView() {
   // Surveillance alert popup
   const prevSurveillance = useRef<number | null>(null);
   const [surveillanceAlert, setSurveillanceAlert] = useState<{ from: number; to: number } | null>(null);
+  const [rebootConfirmOpen, setRebootConfirmOpen] = useState(false);
+  const [autoMoveConfirm, setAutoMoveConfirm] = useState<{ nodeId: string; label: string } | null>(null);
 
   useEffect(() => {
     const current = decker.surveillance ?? 0;
@@ -327,10 +329,7 @@ export default function DeckerView() {
     // On ne propose le déplacement que si CE hack a réellement gagné un Mark
     // (évite un « Hack réussi » trompeur sur un re-hack raté ou une annulation).
     if (node && node.marks > marksBefore && canMoveTo(targetNodeId).ok) {
-      const confirmMove = window.confirm(
-        `Hack réussi ! Voulez-vous vous déplacer sur « ${knownLabel(targetNodeId)} » ?`,
-      );
-      if (confirmMove) void moveDeckerTo(code, targetNodeId);
+      setAutoMoveConfirm({ nodeId: targetNodeId, label: knownLabel(targetNodeId) });
     }
   };
 
@@ -342,9 +341,19 @@ export default function DeckerView() {
 
   const doReboot = () => {
     if (trapped) return;
-    if (window.confirm('Rebooter le deck ? Surveillance purgée, console inactive 3 tours.')) {
-      void reboot(code);
+    setRebootConfirmOpen(true);
+  };
+
+  const confirmReboot = () => {
+    setRebootConfirmOpen(false);
+    void reboot(code);
+  };
+
+  const handleAutoMoveConfirm = (confirmed: boolean) => {
+    if (confirmed && autoMoveConfirm) {
+      void moveDeckerTo(code, autoMoveConfirm.nodeId);
     }
+    setAutoMoveConfirm(null);
   };
 
   const logEntries = useMemo(
@@ -358,11 +367,13 @@ export default function DeckerView() {
 
   return (
     <div className="flex h-full flex-col relative">
-      {/* Barre de titre */}
       <header className="flex h-11 shrink-0 items-center gap-3 border-b border-grid bg-panel px-3">
         <span className="text-xs tracking-[0.2em] text-neon-cyan uppercase">Decker</span>
         <span className="glow-text text-sm tracking-[0.25em] text-neon-cyan">{code}</span>
         <PresenceDot connected={meta?.gmConnected ?? false} label="MJ" />
+        <span className="text-[10px] text-ink-dim select-none ml-1 opacity-70 font-mono">
+          {import.meta.env.VITE_APP_VERSION}
+        </span>
         {trapped && (
           <span className="pulse-alert text-xs text-neon-red">⛓ PIÉGÉ</span>
         )}
@@ -546,7 +557,7 @@ export default function DeckerView() {
 
             <button
               className="btn btn-cyan text-xs"
-              disabled={actionsLocked || !hackTargetId}
+              disabled={actionsLocked || !hackTargetId || (hackTargetId ? nodes[hackTargetId]?.marks >= 4 : false)}
               onClick={() => setApproachPick(true)}
             >
               ⚡ Hacker {hackTargetId ? `« ${knownLabel(hackTargetId)} »` : ''}
@@ -1048,6 +1059,72 @@ export default function DeckerView() {
             >
               Fermer
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Pop-up Rebooter Surveillance stylé */}
+      {rebootConfirmOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-abyss/85 backdrop-blur-sm p-5">
+          <div className="relative w-full max-w-sm border border-neon-cyan bg-panel p-5 rounded shadow-[0_0_25px_rgba(46,230,255,0.25)] text-center">
+            <div className="mb-4 flex items-center justify-between text-[10px] tracking-[0.25em] text-neon-cyan uppercase font-bold">
+              <span>Reboot console</span>
+              <span>Système</span>
+            </div>
+            <p className="glitch-text text-xl font-bold tracking-wider text-neon-cyan uppercase">
+              Rebooter le deck ?
+            </p>
+            <div className="mx-auto my-4 h-px max-w-xs bg-neon-cyan/30" />
+            <p className="text-xs leading-5 text-ink mb-6">
+              La surveillance matricielle sera purgée (remise à 0), mais votre console sera inactive pendant <span className="text-neon-amber font-semibold">3 tours</span>.
+            </p>
+            <div className="flex gap-3">
+              <button
+                className="btn flex-1 text-xs hover:bg-panel-2"
+                onClick={() => setRebootConfirmOpen(false)}
+              >
+                Annuler
+              </button>
+              <button
+                className="btn btn-cyan flex-1 text-xs font-bold"
+                onClick={confirmReboot}
+              >
+                Confirmer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Pop-up Déplacement Auto stylé */}
+      {autoMoveConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-abyss/85 backdrop-blur-sm p-5">
+          <div className="relative w-full max-w-sm border border-neon-green bg-panel p-5 rounded shadow-[0_0_25px_rgba(58,255,143,0.25)] text-center">
+            <div className="mb-4 flex items-center justify-between text-[10px] tracking-[0.25em] text-neon-green uppercase font-bold">
+              <span>Accès autorisé</span>
+              <span>Déplacement</span>
+            </div>
+            <p className="glitch-text text-xl font-bold tracking-wider text-neon-green uppercase">
+              Hack réussi !
+            </p>
+            <div className="mx-auto my-4 h-px max-w-xs bg-neon-green/30" />
+            <p className="text-xs leading-5 text-ink mb-6">
+              Voulez-vous vous déplacer sur le nœud « <span className="text-neon-green font-semibold">{autoMoveConfirm.label}</span> » ?
+            </p>
+            <div className="flex gap-3">
+              <button
+                className="btn flex-1 text-xs hover:bg-panel-2"
+                onClick={() => handleAutoMoveConfirm(false)}
+              >
+                Rester ici
+              </button>
+              <button
+                className="btn btn-cyan flex-1 text-xs font-bold"
+                onClick={() => handleAutoMoveConfirm(true)}
+              >
+                Se déplacer
+              </button>
+            </div>
           </div>
         </div>
       )}
