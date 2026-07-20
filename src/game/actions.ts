@@ -29,7 +29,7 @@ export async function publishRollAndLog(code: string, roll: RollRecord): Promise
     await appendLog(
       code,
       'gm',
-      `⚠ Dé de complication : 1 sur « ${roll.action} » — proposition +1 Surveillance (jauge en Phase 3).`,
+      `⚠ Dé de complication : 1 sur « ${roll.action} » — proposition +1 Surveillance.`,
       'gm',
     );
   }

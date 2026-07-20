@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { PERSONA } from '../../data/persona';
 import { rechargeLuck } from '../../game/actions';
 import { MINI_GAME_LABELS, resolveMiniGame } from '../../game/minigames';
@@ -31,6 +32,27 @@ const DISTANCE_OPTIONS: Array<[string, string]> = [
 /** Panneau MJ de pilotage : Surveillance/DIEU, tours, environnement, decker. */
 export function GamePanel({ code }: { code: string }) {
   const { decker, environment, countdowns, lastRoll, minigame } = useNetworkStore();
+
+  // Modal de complication : on capture l'action déclenchante pour que le modal
+  // n'affiche pas les jets suivants s'ils arrivent pendant qu'il est ouvert.
+  const [complication, setComplication] = useState<{ action: string } | null>(null);
+  const lastProcessedComplicationTs = useRef<number | null>(null);
+
+  // Un seul effet : armement à la première hydratation (le store est vide au
+  // montage puis peuplé de façon asynchrone par Firebase — on mémorise le jet
+  // existant sans ouvrir, pour ne pas rejouer une complication au rechargement),
+  // puis ouverture sur tout NOUVEAU jet portant complication === 1.
+  useEffect(() => {
+    if (!lastRoll) return;
+    if (lastProcessedComplicationTs.current === null) {
+      lastProcessedComplicationTs.current = lastRoll.ts;
+      return;
+    }
+    if (lastRoll.ts <= lastProcessedComplicationTs.current) return;
+    lastProcessedComplicationTs.current = lastRoll.ts;
+    if (lastRoll.complication === 1) setComplication({ action: lastRoll.action });
+  }, [lastRoll]);
+
   const stun = decker.stun ?? deckerDefaults.stun;
   const physical = decker.physical ?? deckerDefaults.physical;
   const deckCondition = decker.deckCondition ?? deckerDefaults.deckCondition;
@@ -69,14 +91,14 @@ export function GamePanel({ code }: { code: string }) {
         </button>
         <span
           className={`min-w-10 text-center text-lg ${
-            surveillance >= 3 ? 'glow-text text-neon-red' : 'text-neon-amber'
+            surveillance >= 6 ? 'glow-text text-neon-red' : 'text-neon-amber'
           }`}
         >
-          {surveillance}/3
+          {surveillance}/6
         </span>
         <button
           className="btn px-3 py-1"
-          disabled={surveillance >= 3}
+          disabled={surveillance >= 6}
           onClick={() => void setSurveillance(code, surveillance + 1)}
         >
           +
@@ -89,7 +111,7 @@ export function GamePanel({ code }: { code: string }) {
       ) : (
         <button
           className="btn btn-red text-xs"
-          disabled={surveillance < 3}
+          disabled={surveillance < 6}
           onClick={doConvergence}
         >
           ☠ LE DIEU CONVERGE
@@ -305,15 +327,6 @@ export function GamePanel({ code }: { code: string }) {
               {lastRoll.complication === 1 ? ' — ⚠ COMPLICATION' : ''}
             </p>
           )}
-          {lastRoll.complication === 1 && (
-            <button
-              className="btn btn-red mt-1 w-full text-[11px]"
-              disabled={surveillance >= 3}
-              onClick={() => void setSurveillance(code, surveillance + 1)}
-            >
-              Valider +1 Surveillance
-            </button>
-          )}
           <details className="mt-1">
             <summary className="cursor-pointer text-[10px] text-ink-dim">
               Détail de la réserve
@@ -324,6 +337,47 @@ export function GamePanel({ code }: { code: string }) {
               </p>
             ))}
           </details>
+        </div>
+      )}
+
+      {/* Modal de complication */}
+      {complication && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-abyss/85 text-ink">
+          <div className="relative w-full max-w-sm rounded border border-neon-red bg-panel p-5 shadow-[0_0_25px_rgba(255,59,92,0.5)]">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-neon-red font-bold text-sm tracking-wider uppercase">
+                ⚠ COMPLICATION MATRICIELLE
+              </span>
+            </div>
+            <div className="h-px bg-neon-red/30 my-2" />
+            <p className="text-xs text-ink leading-5 mb-2">
+              Le Decker a obtenu un <span className="text-neon-red font-bold">1</span> sur son dé de complication lors de l'action :
+            </p>
+            <p className="text-xs text-neon-cyan font-bold bg-panel-2 p-2 rounded mb-4 truncate" title={complication.action}>
+              {complication.action}
+            </p>
+            <p className="text-xs text-ink mb-4">
+              Voulez-vous lui infliger +1 point de Surveillance ?
+            </p>
+            <div className="flex flex-col gap-2">
+              <button
+                className="btn btn-red py-2 text-xs font-bold uppercase tracking-wider pulse-slow"
+                disabled={surveillance >= 6}
+                onClick={() => {
+                  void setSurveillance(code, surveillance + 1);
+                  setComplication(null);
+                }}
+              >
+                Infliger +1 Surveillance ({surveillance} ➔ {Math.min(6, surveillance + 1)}/6)
+              </button>
+              <button
+                className="btn py-2 text-xs font-semibold uppercase tracking-wider"
+                onClick={() => setComplication(null)}
+              >
+                Ignorer la complication
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

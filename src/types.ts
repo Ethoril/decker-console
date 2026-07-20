@@ -67,8 +67,7 @@ export interface DeckerState {
   luck?: number; // points de Chance restants (init 2)
   programs?: { marteau?: ProgramState; discretion?: ProgramState };
   debuffs?: Record<string, boolean>; // ex. { bloqueuse: true }
-  surveillance?: number; // 0..3 — JAUGE DIEU, jamais affichée au joueur sans action
-  surveillanceRevealed?: boolean; // 10 s après « Vérifier », puis retombe
+  surveillance?: number; // 0..6 — JAUGE DIEU, affichée en permanence
   rebootCountdown?: number; // > 0 = deck inactif
   trapped?: boolean; // Pot de colle actif → déconnexion interdite
   convergence?: boolean; // séquence DIEU en cours (plein écran rouge joueur)

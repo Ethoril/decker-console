@@ -24,7 +24,6 @@ import {
   applyDeckerAttack,
   applyEscape,
   applyRepair,
-  checkSurveillance,
   reboot,
 } from '../game/threat';
 import { adjacentNodeIds } from '../game/graph';
@@ -73,6 +72,23 @@ export default function DeckerView() {
 
   const [activeAlert, setActiveAlert] = useState<string | null>(null);
   const [activeAttack, setActiveAttack] = useState<{ attacker: string; result: string } | null>(null);
+
+  // Surveillance alert popup
+  const prevSurveillance = useRef<number | null>(null);
+  const [surveillanceAlert, setSurveillanceAlert] = useState<{ from: number; to: number } | null>(null);
+
+  useEffect(() => {
+    const current = decker.surveillance ?? 0;
+    if (prevSurveillance.current === null) {
+      if (decker.surveillance === undefined) return;
+      prevSurveillance.current = current;
+      return;
+    }
+    if (current > prevSurveillance.current) {
+      setSurveillanceAlert({ from: prevSurveillance.current, to: current });
+    }
+    prevSurveillance.current = current;
+  }, [decker.surveillance]);
 
   const luck = decker.luck ?? deckerDefaults.luck;
   const stun = decker.stun ?? deckerDefaults.stun;
@@ -458,7 +474,6 @@ export default function DeckerView() {
 
           <DieuDial
             surveillance={decker.surveillance ?? 0}
-            revealed={decker.surveillanceRevealed ?? false}
           />
         </SideColumn>
 
@@ -588,13 +603,6 @@ export default function DeckerView() {
 
             <hr className="my-1 border-grid" />
 
-            <button
-              className="btn text-xs"
-              disabled={actionsLocked || !deckerNodeId}
-              onClick={() => void checkSurveillance(code)}
-            >
-              👁 Vérifier la Surveillance (1 tour)
-            </button>
             {trapped && (
               <button className="btn btn-red text-xs" disabled={actionsLocked} onClick={startEscape}>
                 ⛓ S'arracher au Pot de colle
@@ -708,19 +716,67 @@ export default function DeckerView() {
               LE DIEU CONVERGE
             </p>
             <div className="mx-auto my-5 h-px max-w-md bg-neon-red shadow-[0_0_16px_var(--color-neon-red)]" />
-            <p className="text-sm tracking-wider text-neon-red/90">
-              POSITION PHYSIQUE COMPROMISE
+            <p className="text-sm tracking-wider text-neon-red/90 uppercase font-bold">
+              Position physique compromise — Système Grillé
             </p>
-            <p className="mt-2 text-xs leading-6 text-ink-dim">
-              Éjection forcée de la Matrice · Liaison persona interrompue
-              <br />
-              Le MJ reprend la main.
+            
+            <div className="my-5 mx-auto max-w-md rounded border border-neon-red/30 bg-neon-red/5 p-4 text-left text-xs leading-6">
+              <p className="text-neon-red font-bold mb-2 uppercase tracking-wide">🚫 EFFETS DE LA CONVERGENCE :</p>
+              <ul className="list-disc pl-4 space-y-2 text-ink">
+                <li>
+                  <span className="text-neon-red font-semibold">Dumpshock immédiat</span> : Vous subissez <span className="text-neon-red font-semibold">3 cases de dégâts Étourdissants</span> (éjection en RA).
+                </li>
+                <li>
+                  <span className="text-neon-red font-semibold">Cyberdeck endommagé</span> : Votre appareil subit des dégâts matériels massifs (déterminés par le MJ).
+                </li>
+                <li>
+                  <span className="text-neon-red font-semibold">Localisation compromise</span> : Le DIEU a tracé votre position physique réelle et alerté la sécurité locale.
+                </li>
+                <li>
+                  <span className="text-neon-red font-semibold">Éjection de la Matrice</span> : Votre connexion est coupée de force, votre persona disparaît et votre console est verrouillée.
+                </li>
+              </ul>
+            </div>
+
+            <p className="mt-4 text-xs leading-6 text-ink-dim">
+              La séquence matricielle est terminée. Le MJ reprend la main pour la narration physique.
             </p>
             <div className="mt-6 grid grid-cols-3 gap-2 text-[10px] text-neon-red/60">
               <span className="border border-neon-red/20 p-2">DECK // LOCK</span>
               <span className="border border-neon-red/20 p-2">SIGNAL // LOST</span>
               <span className="border border-neon-red/20 p-2">GOD // ONLINE</span>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Alerte d'augmentation de la surveillance (convergence et Pot de colle priment) */}
+      {surveillanceAlert && !convergence && !(trapped && !dismissedTrapped) && (
+        <div className="convergence-screen fixed inset-0 z-50 flex items-center justify-center overflow-hidden p-5">
+          <div className="convergence-frame relative w-full max-w-sm border border-neon-amber bg-abyss/85 p-6 text-center">
+            <div className="mb-4 flex items-center justify-between text-[10px] tracking-[0.25em] text-neon-amber">
+              <span>ALERTE DE TRAÇAGE</span>
+              <span>DIEU // ACTIVE TRACE</span>
+            </div>
+            <p className="glitch-text text-2xl font-bold tracking-[0.1em] text-neon-amber uppercase">
+              Le Signal s'échauffe
+            </p>
+            <div className="mx-auto my-4 h-px max-w-xs bg-neon-amber/30" />
+            <p className="mt-3 text-xs leading-6 text-ink">
+              Votre niveau de surveillance matricielle a augmenté :
+            </p>
+            <p className="text-xl font-bold text-neon-amber bg-panel-2 py-2 my-2 rounded">
+              {surveillanceAlert.from} ➔ {surveillanceAlert.to} / 6
+            </p>
+            <p className="text-xs leading-5 text-ink-dim mt-4">
+              Rapprochez-vous de la déconnexion ou effectuez un <span className="text-neon-cyan font-semibold">Reboot</span> avant que le DIEU ne converge (à 6/6) !
+            </p>
+            <button
+              className="btn btn-cyan mt-6 w-full py-2 text-xs font-bold tracking-widest uppercase"
+              onClick={() => setSurveillanceAlert(null)}
+            >
+              Compris
+            </button>
           </div>
         </div>
       )}

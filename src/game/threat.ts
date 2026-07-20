@@ -283,20 +283,11 @@ async function spawnIcons(
 // ------------------------------------------------------ Surveillance / DIEU
 
 export async function setSurveillance(code: string, value: number): Promise<void> {
-  await updateDecker(code, { surveillance: Math.max(0, Math.min(3, value)) });
-}
-
-/** Action joueur « Vérifier la Surveillance » : révèle la valeur 10 s (CDC §3.9). */
-export async function checkSurveillance(code: string): Promise<void> {
-  await updateDecker(code, { surveillanceRevealed: true });
-  await appendLog(code, 'action', 'Vérification de la Surveillance (coûte le tour).');
-  window.setTimeout(() => {
-    void updateDecker(code, { surveillanceRevealed: false });
-  }, 10_000);
+  await updateDecker(code, { surveillance: Math.max(0, Math.min(6, value)) });
 }
 
 /**
- * Séquence DIEU (Surveillance à 3, bouton MJ) : plein écran rouge joueur,
+ * Séquence DIEU (Surveillance à 6, bouton MJ) : plein écran rouge joueur,
  * dumpshock automatique (3 cases), dégâts massifs au deck (valeur MJ).
  */
 export async function triggerConvergence(code: string, deckDamage: number): Promise<void> {

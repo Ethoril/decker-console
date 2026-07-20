@@ -74,8 +74,7 @@ sessions/{sessionCode}/
       marteau: 'active' | 'crashed'
       discretion: 'active' | 'crashed'
     debuffs: string[]                // ex. ['bloqueuse'] → effets persistants
-    surveillance: 0..3               // JAUGE DIEU — jamais affichée au joueur sans action
-    surveillanceRevealed: boolean    // passe à true 10 s après une action "Vérifier", puis retombe
+    surveillance: 0..6               // JAUGE DIEU — affichée en permanence au joueur (débutants)
     rebootCountdown: 0..3            // > 0 = deck inactif
     trapped: boolean                 // GLACE Pot de colle active → déconnexion interdite
 
@@ -212,9 +211,10 @@ Tour par tour informel (Anarchy) : le MJ résout les attaques des GLACES depuis 
 
 ### 3.9 Surveillance et DIEU
 
-- Jauge 0-3, stockée côté serveur, **affichée en permanence chez le MJ**, masquée chez le joueur (cadran statique brouillé "SIGNAL DIEU : ▓▓▓").
-- **Action "Vérifier la Surveillance"** (coûte le tour) : révèle la valeur pendant 10 s côté joueur, loggée.
-- **À 3 points** : séquence DIEU — plein écran rouge côté joueur, dumpshock automatique (3 cases), dégâts massifs au deck (valeur MJ), entrée log "LE DIEU CONVERGE — position physique compromise", et le MJ reprend la main narrativement.
+- Jauge 0-6, stockée côté serveur, **affichée en permanence chez le MJ et chez le Decker** sous forme de barre de progression (pour faciliter le jeu avec des débutants).
+- **Popup d'alerte Decker** : Dès que le niveau de surveillance augmente, un popup d'avertissement s'affiche sur l'écran du Decker pour lui indiquer son nouveau niveau.
+- **Popup MJ de complication** : Si le Decker obtient un 1 sur son dé de complication, un modal apparaît immédiatement côté MJ pour lui proposer d'infliger +1 de Surveillance ou d'ignorer la complication (ce modal remplace l'affichage inline existant).
+- **À 6 points** : séquence DIEU — plein écran rouge côté joueur détaillant explicitement les effets (dumpshock automatique de 3 cases étourdissantes, dégâts massifs au deck réglés par le MJ, position physique compromise signalée aux forces de sécurité locales, éjection immédiate et verrouillage de la console), et le MJ reprend la main narrativement.
 - **Reboot** (action joueur) : Surveillance → 0, `rebootCountdown = 3`, console joueur grisée avec compte à rebours, purge aussi `trapped` et les buffs "alarme silencieuse" ? **Non** — seulement la Surveillance (les effets de scène persistent). Décrémentation du compteur : bouton "tour suivant" côté MJ.
 
 ---
@@ -228,8 +228,8 @@ Tour par tour informel (Anarchy) : le MJ résout les attaques des GLACES depuis 
 ### 4.2 Vue Decker (tablette paysage, dégradable smartphone paysage)
 Disposition en 3 zones horizontales :
 1. **Carte réseau** (zone centrale, ~65 % de la largeur) : SVG pan/zoom (pointer events), fog of war, persona pulsant, diodes de Marks sur les nœuds, GLACES visibles selon `visibleToPlayer`.
-2. **Colonne d'état** (gauche, étroite) : mode de connexion (sélecteur), moniteurs (deck 9 / étourdi / physique), programmes actifs, debuffs, Chance restante, cadran DIEU brouillé.
-3. **Colonne d'action contextuelle** (droite) : boutons selon le nœud courant et les Marks détenues — Scanner · Hacker (→ choix Force Brute/Corruption → écran de jet) · Se déplacer (action distincte) · Lire paydata · Contrôler périphérique · Attaquer (cybercombat) · Vérifier Surveillance · Rebooter · Se déconnecter (bloqué si `trapped`).
+2. **Colonne d'état** (gauche, étroite) : mode de connexion (sélecteur), moniteurs (deck 9 / étourdi / physique), programmes actifs, debuffs, Chance restante, cadran DIEU (visible).
+3. **Colonne d'action contextuelle** (droite) : boutons selon le nœud courant et les Marks détenues — Scanner · Hacker (→ choix Force Brute/Corruption → écran de jet) · Se déplacer (action distincte) · Lire paydata · Contrôler périphérique · Attaquer (cybercombat) · Rebooter · Se déconnecter (bloqué si `trapped`).
 4. **Log** en tiroir (bottom sheet), style terminal.
 
 **Dégradation smartphone paysage** (breakpoint sur la hauteur, < ~500 px) : les deux colonnes se replient en tiroirs latéraux (icônes d'ouverture aux bords), la carte occupe tout l'écran, les moniteurs se résument à une barre compacte en haut (3 pastilles + cadran DIEU).
@@ -301,7 +301,7 @@ Rendu SVG du graphe (pan/zoom tactile), éditeur MJ (nœuds, liens, propriétés
 `persona.ts`, composeur de réserve ligne à ligne, modes de connexion (+ Écorché), Chance 4+, relance Cyber-5, dé de complication, seuils/oppositions, log temps réel. Action Hacker complète : approche, jet, Marks, droits par Mark, conséquences d'échec.
 
 **Phase 3 — Menace** 1-2 j
-Moniteurs de condition + routage des dégâts, jauge Surveillance (masquée/vérifier/convergence DIEU), Reboot, Dumpshock, contre-mesures par niveau de sécurité (pics de données automatisés, spawns), GLACES : types, effets, cybercombat complet, panneau MJ de pilotage, hackers ennemis. → **Version jouable.**
+Moniteurs de condition + routage des dégâts, jauge Surveillance (affichée/convergence DIEU à 6), Reboot, Dumpshock, contre-mesures par niveau de sécurité (pics de données automatisés, spawns), GLACES : types, effets, cybercombat complet, panneau MJ de pilotage, hackers ennemis. → **Version jouable.**
 
 **Phase 4 — Mini-jeux** 1 j / jeu
 Framework `MiniGame` + miroir MJ, puis les 5 jeux dans l'ordre : Injection de code, Surcharge, Décryptage, Extraction, Brouillage.

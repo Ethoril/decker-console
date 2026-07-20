@@ -32,25 +32,22 @@ export function MonitorBoxes({
   );
 }
 
-/** Cadran DIEU : brouillé en permanence, valeur révélée 10 s après « Vérifier ». */
-export function DieuDial({
-  surveillance,
-  revealed,
-}: {
-  surveillance: number;
-  revealed: boolean;
-}) {
+/** Cadran DIEU : affiché en permanence sur 6 niveaux, couleur montante. */
+export function DieuDial({ surveillance }: { surveillance: number }) {
+  const level = Math.max(0, Math.min(6, surveillance));
+  const color =
+    level === 0
+      ? 'text-ink-dim'
+      : level >= 5
+        ? 'glow-text text-neon-red'
+        : 'text-neon-amber';
   return (
     <div className="rounded border border-grid bg-panel-2 p-2 text-center">
       <p className="text-[10px] tracking-widest text-ink-dim uppercase">Signal DIEU</p>
-      {revealed ? (
-        <p className="glow-text mt-1 text-lg tracking-[0.3em] text-neon-red">
-          {'█'.repeat(surveillance)}
-          {'░'.repeat(3 - surveillance)} {surveillance}/3
-        </p>
-      ) : (
-        <p className="mt-1 text-lg tracking-[0.3em] text-neon-red opacity-60">▓▓▓</p>
-      )}
+      <p className={`mt-1 text-lg tracking-[0.3em] ${color}`}>
+        {'█'.repeat(level)}
+        {'░'.repeat(6 - level)} {level}/6
+      </p>
     </div>
   );
 }
