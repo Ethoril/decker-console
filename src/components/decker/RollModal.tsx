@@ -17,7 +17,6 @@ import type {
   DecryptionParams,
   ExtractionParams,
   InjectionParams,
-  JammingParams,
   MiniGameContext,
   MiniGameKind,
   MiniGameRequestContext,
@@ -31,7 +30,6 @@ import { MiniGameShell } from '../../minigames/MiniGameShell';
 import { OverloadGame } from '../../minigames/overload/OverloadGame';
 import { DecryptionGame } from '../../minigames/decryption/DecryptionGame';
 import { ExtractionGame } from '../../minigames/extraction/ExtractionGame';
-import { JammingGame } from '../../minigames/jamming/JammingGame';
 
 export interface RollRequest {
   /** Libellé du test, ex. « Hack (Corruption) — Serveur RH ». */
@@ -230,9 +228,6 @@ export function RollModal({
         break;
       case 'extraction':
         gameView = <ExtractionGame params={activeGame.params as ExtractionParams} {...common} />;
-        break;
-      case 'jamming':
-        gameView = <JammingGame params={activeGame.params as JammingParams} {...common} />;
         break;
     }
     return (

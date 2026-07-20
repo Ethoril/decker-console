@@ -258,12 +258,30 @@ export function exportNetwork(): NetworkExport {
   };
 }
 
+/** Migre les types d'icônes obsolètes (patrouilleuse -> bloqueuse, traceuse -> acide) */
+export function migrateIcons(icons: Record<string, any> | null): Record<string, MatrixIcon> | null {
+  if (!icons) return null;
+  const migrated: Record<string, MatrixIcon> = {};
+  for (const [id, icon] of Object.entries(icons)) {
+    if (icon) {
+      let iceType = icon.iceType;
+      if (iceType === 'patrouilleuse') {
+        iceType = 'bloqueuse';
+      } else if (iceType === 'traceuse') {
+        iceType = 'acide';
+      }
+      migrated[id] = { ...icon, iceType } as MatrixIcon;
+    }
+  }
+  return migrated;
+}
+
 /** Remplace intégralement network + icons (+ position decker) par l'import.
  *  Les jauges du decker (mode, stun, Chance) ne sont pas touchées. */
 export async function importNetwork(code: string, data: NetworkExport): Promise<void> {
   await update(ref(getDb(), sessionPath(code)), {
     network: data.network ?? null,
-    icons: data.icons ?? null,
+    icons: migrateIcons(data.icons as any) ?? null,
     'decker/nodeId': data.decker?.nodeId ?? null,
   });
 }

@@ -12,9 +12,7 @@ export type IceType =
   | 'brouilleuse'
   | 'crash'
   | 'noire'
-  | 'patrouilleuse'
   | 'potDeColle'
-  | 'traceuse'
   | 'tueuse';
 
 export type IconKind = 'ice' | 'spider' | 'enemyHacker';
@@ -71,7 +69,6 @@ export interface DeckerState {
   rebootCountdown?: number; // > 0 = deck inactif
   trapped?: boolean; // Pot de colle actif → déconnexion interdite
   convergence?: boolean; // séquence DIEU en cours (plein écran rouge joueur)
-  traceDelay?: number; // tours gagnés par Brouillage avant localisation
 }
 
 /** Sous-arbre environment/ — malus d'environnement + buff système (CDC §2). */
@@ -115,8 +112,7 @@ export type MiniGameKind =
   | 'injection'
   | 'overload'
   | 'decryption'
-  | 'extraction'
-  | 'jamming';
+  | 'extraction';
 export type MiniGameStatus = 'active' | 'success' | 'failure';
 
 export interface InjectionParams {
@@ -141,18 +137,11 @@ export interface ExtractionParams {
   timeLimit: number;
 }
 
-export interface JammingParams {
-  duration: number;
-  spawnInterval: number;
-  maxMisses: number;
-}
-
 export type MiniGameParams =
   | InjectionParams
   | OverloadParams
   | DecryptionParams
-  | ExtractionParams
-  | JammingParams;
+  | ExtractionParams;
 
 export interface MiniGameProgress {
   label: string;
@@ -174,20 +163,13 @@ export interface EscapeMiniGameContext {
   rollSuccesses: number;
 }
 
-export interface TraceMiniGameContext {
-  type: 'trace';
-  rollSuccesses: number;
-}
-
 export type MiniGameContext =
   | HackMiniGameContext
-  | EscapeMiniGameContext
-  | TraceMiniGameContext;
+  | EscapeMiniGameContext;
 
 export type MiniGameRequestContext =
   | Omit<HackMiniGameContext, 'rollSuccesses'>
-  | Omit<EscapeMiniGameContext, 'rollSuccesses'>
-  | Omit<TraceMiniGameContext, 'rollSuccesses'>;
+  | Omit<EscapeMiniGameContext, 'rollSuccesses'>;
 
 /** État temps réel d'un mini-jeu, affiché au joueur et en miroir chez le MJ. */
 export interface MiniGameState {

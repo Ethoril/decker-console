@@ -27,7 +27,6 @@ import {
   reboot,
 } from '../game/threat';
 import { adjacentNodeIds } from '../game/graph';
-import { applyTraceJamming } from '../game/minigames';
 import {
   cybercombatPool,
   escapePool,
@@ -281,16 +280,6 @@ export default function DeckerView() {
     if (text) setRevealedInfo({ kind: 'paydata', nodeLabel: knownLabel(deckerNodeId), text });
   };
 
-  const startJamming = () =>
-    setRoll({
-      action: 'Brouillage anti-pistage',
-      lines: escapePool(),
-      withComplication: true,
-      successPenalty,
-      apply: (s) => applyTraceJamming(code, s),
-      miniGame: { kind: 'jamming', context: { type: 'trace' } },
-    });
-
   const startRepair = () =>
     setRoll({
       action: 'Réparation du deck',
@@ -438,9 +427,9 @@ export default function DeckerView() {
             <p className="text-neon-cyan">{PERSONA.name}</p>
             <p className="text-ink-dim">
               {PERSONA.deck.name}
-              {firewallPenalty > 0 && (
-                <span className="text-neon-red"> · FW −{firewallPenalty}</span>
-              )}
+            </p>
+            <p className="text-ink-dim">
+              Firewall : <span className={firewallPenalty > 0 ? "text-neon-red" : "text-neon-cyan"}>{Math.max(0, PERSONA.deck.firewall - firewallPenalty)}</span>/{PERSONA.deck.firewall}
             </p>
           </div>
 
@@ -476,9 +465,6 @@ export default function DeckerView() {
             <p>
               🍀 Chance : <span className="text-neon-green">{luck}</span>/{PERSONA.chance}
             </p>
-            {(decker.traceDelay ?? 0) > 0 && (
-              <p className="text-neon-magenta">◌ Trace brouillée : {decker.traceDelay} tour(s)</p>
-            )}
           </div>
 
           <DieuDial
@@ -575,13 +561,6 @@ export default function DeckerView() {
               → Se déplacer ici
             </button>
             {move.reason && <p className="text-[10px] leading-4 text-neon-amber">{move.reason}</p>}
-
-            {selectedIcon?.kind === 'ice' &&
-              selectedIcon.iceType === 'traceuse' && (
-                <button className="btn btn-magenta text-xs" disabled={actionsLocked} onClick={startJamming}>
-                  ◌ Brouiller la Traceuse
-                </button>
-              )}
 
             <hr className="my-1 border-grid" />
             <h4 className="text-[10px] text-ink-dim uppercase tracking-wider mb-0.5">Acquisitions Automatiques</h4>

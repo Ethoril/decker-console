@@ -60,7 +60,7 @@ export function GamePanel({ code }: { code: string }) {
   const luck = decker.luck ?? deckerDefaults.luck;
   const surveillance = decker.surveillance ?? 0;
   const rebootCountdown = decker.rebootCountdown ?? 0;
-  const traceDelay = decker.traceDelay ?? 0;
+
   const systemBuff = environment.systemBuff ?? 0;
   const intervention = countdowns.intervention ?? null;
   const programs = decker.programs ?? {};
@@ -124,8 +124,7 @@ export function GamePanel({ code }: { code: string }) {
         ▶ Tour suivant
       </button>
       <p className="text-[10px] text-ink-dim">
-        Reboot : {rebootCountdown > 0 ? `${rebootCountdown} tour(s)` : '—'} · Trace :{' '}
-        {traceDelay > 0 ? `${traceDelay} tour(s)` : '—'} · Intervention :{' '}
+        Reboot : {rebootCountdown > 0 ? `${rebootCountdown} tour(s)` : '—'} · Intervention :{' '}
         {intervention === null ? '—' : `${intervention} tour(s)`}
         {systemBuff > 0 && (
           <span className="text-neon-amber"> · buff système +{systemBuff}</span>

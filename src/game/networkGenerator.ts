@@ -50,21 +50,21 @@ function generateSecurityIcons(
 
   const icons: Record<string, MatrixIcon> = {
     patrol: {
-      kind: 'ice', nodeId: 'gateway', iceType: 'patrouilleuse',
+      kind: 'ice', nodeId: 'gateway', iceType: 'bloqueuse',
       revealed: true, visibleToPlayer: true, label: 'Sentinelle', condition: 6,
     },
   };
 
   if (difficulty !== 'low') {
     icons.blocker = {
-      kind: 'ice', nodeId: strongest, iceType: 'bloqueuse',
-      revealed: true, visibleToPlayer: false, label: 'Verrou', condition: 6,
+      kind: 'ice', nodeId: strongest, iceType: 'acide',
+      revealed: true, visibleToPlayer: false, label: 'Corrosif', condition: 6,
     };
   }
 
   if (difficulty === 'high') {
     icons.tracer = {
-      kind: 'ice', nodeId: middle, iceType: 'traceuse',
+      kind: 'ice', nodeId: middle, iceType: 'brouilleuse',
       revealed: true, visibleToPlayer: false, label: 'Limier', condition: 6,
     };
     icons.tar = {

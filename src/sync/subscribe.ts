@@ -2,6 +2,7 @@ import { onDisconnect, onValue, ref, set } from 'firebase/database';
 import { getDb } from '../firebase';
 import { useNetworkStore } from '../store/network';
 import type { Role } from '../types';
+import { migrateIcons } from './write';
 
 /**
  * Point d'abonnement unique à une session : hydrate le store network
@@ -27,7 +28,7 @@ export function subscribeToSession(code: string, role: Role): () => void {
       links: network.links ?? {},
     });
   });
-  sub('icons', (v) => useNetworkStore.setState({ icons: (v as never) ?? {} }));
+  sub('icons', (v) => useNetworkStore.setState({ icons: migrateIcons(v as any) ?? {} }));
   sub('decker', (v) => useNetworkStore.setState({ decker: (v as never) ?? {} }));
   sub('environment', (v) => useNetworkStore.setState({ environment: (v as never) ?? {} }));
   sub('countdowns', (v) => useNetworkStore.setState({ countdowns: (v as never) ?? {} }));

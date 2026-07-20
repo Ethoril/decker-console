@@ -32,7 +32,7 @@ export const NETWORK_TEMPLATES: NetworkTemplate[] = [
         },
       },
       icons: {
-        patrol: { kind: 'ice', nodeId: 'router', iceType: 'patrouilleuse', revealed: true, visibleToPlayer: true, label: 'Sentinelle locale', condition: 6 },
+        patrol: { kind: 'ice', nodeId: 'router', iceType: 'bloqueuse', revealed: true, visibleToPlayer: true, label: 'Sentinelle locale', condition: 6 },
       },
       decker: { nodeId: 'entry' },
     },
@@ -63,7 +63,7 @@ export const NETWORK_TEMPLATES: NetworkTemplate[] = [
         },
       },
       icons: {
-        patrol: { kind: 'ice', nodeId: 'gate', iceType: 'patrouilleuse', revealed: true, visibleToPlayer: true, label: 'Watchdog', condition: 6 },
+        patrol: { kind: 'ice', nodeId: 'gate', iceType: 'bloqueuse', revealed: true, visibleToPlayer: true, label: 'Watchdog', condition: 6 },
         blocker: { kind: 'ice', nodeId: 'security', iceType: 'bloqueuse', revealed: true, visibleToPlayer: false, label: 'Lockjaw', condition: 6 },
         spider: { kind: 'spider', nodeId: 'core', iceType: null, revealed: true, visibleToPlayer: false, label: 'Spider de garde', condition: 8 },
       },
@@ -99,7 +99,7 @@ export const NETWORK_TEMPLATES: NetworkTemplate[] = [
         },
       },
       icons: {
-        trace: { kind: 'ice', nodeId: 'trace', iceType: 'traceuse', revealed: true, visibleToPlayer: false, label: 'Limier', condition: 6 },
+        trace: { kind: 'ice', nodeId: 'trace', iceType: 'acide', revealed: true, visibleToPlayer: false, label: 'Limier', condition: 6 },
         tar: { kind: 'ice', nodeId: 'inner', iceType: 'potDeColle', revealed: true, visibleToPlayer: false, label: 'Goudron', condition: 6 },
         black: { kind: 'ice', nodeId: 'black', iceType: 'noire', revealed: true, visibleToPlayer: false, label: 'Ange noir', condition: 8 },
         killer: { kind: 'ice', nodeId: 'vault', iceType: 'tueuse', revealed: true, visibleToPlayer: false, label: 'Cerbère', condition: 8 },

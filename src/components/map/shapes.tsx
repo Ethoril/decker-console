@@ -179,9 +179,7 @@ export const ICE_SHORT: Record<IceType, string> = {
   brouilleuse: 'BR',
   crash: 'CR',
   noire: 'NR',
-  patrouilleuse: 'PA',
   potDeColle: 'PC',
-  traceuse: 'TR',
   tueuse: 'TU',
 };
 
@@ -191,9 +189,7 @@ export const ICE_LABELS: Record<IceType, string> = {
   brouilleuse: 'Brouilleuse',
   crash: 'Crash',
   noire: 'Noire',
-  patrouilleuse: 'Patrouilleuse',
   potDeColle: 'Pot de colle',
-  traceuse: 'Traceuse',
   tueuse: 'Tueuse',
 };
 

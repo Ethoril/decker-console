@@ -1,12 +1,10 @@
 import { applyHack } from './actions';
 import { applyEscape } from './threat';
-import { useNetworkStore } from '../store/network';
-import { appendLog, publishMiniGame, updateDecker, updateMiniGame } from '../sync/write';
+import { appendLog, publishMiniGame, updateMiniGame } from '../sync/write';
 import type {
   DecryptionParams,
   ExtractionParams,
   InjectionParams,
-  JammingParams,
   MiniGameContext,
   MiniGameKind,
   MiniGameParams,
@@ -19,7 +17,6 @@ export const MINI_GAME_LABELS: Record<MiniGameKind, string> = {
   overload: 'Surcharge',
   decryption: 'Décryptage',
   extraction: 'Extraction d’urgence',
-  jamming: 'Brouillage',
 };
 
 /** Garde le jeu thématique à 65 %, puis répartit le reste entre 3 variantes. */
@@ -29,7 +26,6 @@ export function pickMiniGameKind(primary: MiniGameKind): MiniGameKind {
     overload: ['injection', 'decryption', 'extraction'],
     decryption: ['injection', 'overload', 'extraction'],
     extraction: ['injection', 'overload', 'decryption'],
-    jamming: ['injection', 'overload', 'decryption'],
   };
   const roll = Math.random();
   if (roll < 0.65) return primary;
@@ -65,20 +61,12 @@ export function extractionParams(successes: number): ExtractionParams {
   return { gridSize: 14, timeLimit: 12 };
 }
 
-export function jammingParams(successes: number): JammingParams {
-  if (successes >= 4) return { duration: 12, spawnInterval: 950, maxMisses: 3 };
-  if (successes >= 2) return { duration: 14, spawnInterval: 800, maxMisses: 3 };
-  if (successes === 1) return { duration: 16, spawnInterval: 650, maxMisses: 2 };
-  return { duration: 18, spawnInterval: 520, maxMisses: 1 };
-}
-
 function paramsFor(kind: MiniGameKind, successes: number): MiniGameParams {
   switch (kind) {
     case 'injection': return injectionParams(successes);
     case 'overload': return overloadParams(successes);
     case 'decryption': return decryptionParams(successes);
     case 'extraction': return extractionParams(successes);
-    case 'jamming': return jammingParams(successes);
   }
 }
 
@@ -86,8 +74,7 @@ function totalFor(kind: MiniGameKind, params: MiniGameParams): number {
   if (kind === 'injection') return (params as InjectionParams).maxAttempts;
   if (kind === 'overload') return (params as OverloadParams).requiredHits;
   if (kind === 'decryption') return (params as DecryptionParams).gridSize ** 2;
-  if (kind === 'extraction') return (params as ExtractionParams).gridSize ** 2;
-  return (params as JammingParams).duration;
+  return (params as ExtractionParams).gridSize ** 2;
 }
 
 export function createMiniGame(
@@ -114,20 +101,6 @@ export async function startMiniGame(code: string, game: MiniGameState): Promise<
   await appendLog(code, 'action', `Mini-jeu lancé : ${MINI_GAME_LABELS[game.kind]} — ${game.action}.`);
 }
 
-export async function applyTraceJamming(code: string, successes: number): Promise<string> {
-  const decker = useNetworkStore.getState().decker;
-  if (successes < 1) {
-    const surveillance = Math.min(3, (decker.surveillance ?? 0) + 1);
-    await updateDecker(code, { surveillance });
-    await appendLog(code, 'alert', 'Brouillage échoué : +1 Surveillance.');
-    return 'échec — la trace se resserre (+1 Surveillance)';
-  }
-  const turns = Math.max(2, successes + 1);
-  await updateDecker(code, { traceDelay: turns });
-  await appendLog(code, 'action', `Trace brouillée : localisation retardée de ${turns} tour(s).`);
-  return `trace retardée de ${turns} tour(s)`;
-}
-
 /** Applique l'effet métier du mini-jeu, puis publie son résultat au miroir MJ. */
 export async function resolveMiniGame(
   code: string,
@@ -149,9 +122,6 @@ export async function resolveMiniGame(
       break;
     case 'escape':
       outcome = await applyEscape(code, successes);
-      break;
-    case 'trace':
-      outcome = await applyTraceJamming(code, won ? Math.max(1, successes) : 0);
       break;
   }
 

@@ -413,13 +413,7 @@ export async function nextTurn(code: string): Promise<void> {
     await updateDecker(code, { rebootCountdown: rc - 1 });
     if (rc - 1 === 0) await appendLog(code, 'system', 'Deck de nouveau opérationnel.');
   }
-  const traceDelay = decker.traceDelay ?? 0;
-  if (traceDelay > 0) {
-    await updateDecker(code, { traceDelay: traceDelay - 1 });
-    if (traceDelay - 1 === 0) {
-      await appendLog(code, 'alert', 'Le brouillage expire : la localisation peut reprendre.');
-    }
-  }
+
   const iv = countdowns.intervention ?? null;
   if (iv !== null && iv > 0) {
     await setIntervention(code, iv - 1);

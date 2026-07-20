@@ -56,21 +56,9 @@ export const ICE_EFFECTS: Record<IceType, IceEffect> = {
     attackBonus: 0,
     alwaysPhysical: true,
   },
-  patrouilleuse: {
-    onHitText: null,
-    passiveText: 'Relance 2 échecs en perception (à gérer sur ses jets de détection)',
-    attackBonus: 0,
-    alwaysPhysical: false,
-  },
   potDeColle: {
     onHitText: 'Piégé : déconnexion/reboot interdits, fuite = test de Hacking',
     passiveText: null,
-    attackBonus: 0,
-    alwaysPhysical: false,
-  },
-  traceuse: {
-    onHitText: null,
-    passiveText: '+2D aux tests de pistage du système',
     attackBonus: 0,
     alwaysPhysical: false,
   },

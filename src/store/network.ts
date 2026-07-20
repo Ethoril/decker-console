@@ -63,5 +63,4 @@ export const deckerDefaults = {
   rebootCountdown: 0,
   trapped: false,
   convergence: false,
-  traceDelay: 0,
 };
