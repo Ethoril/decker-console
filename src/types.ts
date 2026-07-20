@@ -224,6 +224,28 @@ export interface LogEntry {
   visibility: 'all' | 'gm';
 }
 
+/** Issue d'une attaque *subie* par le decker (pour la notification joueur). */
+export type AttackOutcome =
+  | 'dodged' // esquivée (jet de défense gagné)
+  | 'blocked' // parée par le Firewall
+  | 'deckDamage' // dégâts au deck
+  | 'physicalDamage' // dégâts physiques (GLACE Noire)
+  | 'convergence'; // le DIEU grille le deck
+
+/**
+ * Événement structuré d'attaque contre le decker, écrit en miroir par le
+ * moteur de menace (game/threat.ts) et consommé par la vue Decker. Remplace
+ * le parsing fragile du journal : la source décide, l'UI ne fait qu'afficher.
+ */
+export interface AttackEvent {
+  id: string; // clé unique (détection de nouvel événement, anti-rejeu)
+  ts?: number;
+  attacker: string; // nom affiché de la source de l'attaque
+  outcome: AttackOutcome;
+  amount?: number; // dégâts infligés, si applicable
+  detail?: string; // complément court, ex. « 3 vs 1 » (succès attaque vs défense)
+}
+
 /** Forme du fichier d'export/import JSON du réseau (vue MJ). */
 export interface NetworkExport {
   network: {

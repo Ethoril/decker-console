@@ -10,6 +10,7 @@ import {
   appendLog,
   createIcon,
   deleteIcon,
+  publishAttack,
   setEnvironment,
   setIntervention,
   updateDecker,
@@ -104,17 +105,26 @@ export async function iconAttack(code: string, iconId: string): Promise<string> 
   const net = atkS - def.successes;
 
   const label = icon.label + (icon.iceType ? ` (${icon.iceType})` : '');
+  const rollDetail = `${atkS} vs ${def.successes}`;
   if (net <= 0) {
     await appendLog(
       code,
       'action',
-      `${label} attaque le decker : ${atkS} vs ${def.successes} — esquivé.`,
+      `${label} attaque le decker : ${rollDetail} — esquivé.`,
     );
+    await publishAttack(code, { attacker: label, outcome: 'dodged', detail: rollDetail });
     return `raté (${atkS} vs ${def.successes})`;
   }
 
   const damage = ICE_STATS.baseDamage + net;
-  await applyMatrixDamage(code, damage, `Attaque de ${label}`, effect?.alwaysPhysical ?? false);
+  const physical = effect?.alwaysPhysical ?? false;
+  await applyMatrixDamage(code, damage, `Attaque de ${label}`, physical);
+  await publishAttack(code, {
+    attacker: label,
+    outcome: physical ? 'physicalDamage' : 'deckDamage',
+    amount: damage,
+    detail: rollDetail,
+  });
 
   // Effets à l'impact
   if (icon.kind === 'ice' && icon.iceType) {
@@ -189,11 +199,19 @@ async function dataSpike(code: string, diceCount: number, label: string): Promis
   const atkS = countSuccesses(atk, 5);
   const def = deckerDefenseRoll();
   const net = atkS - def.successes;
+  const rollDetail = `${atkS} vs ${def.successes}`;
   if (net <= 0) {
-    await appendLog(code, 'action', `${label} : ${atkS} vs ${def.successes} — paré par le Firewall.`);
+    await appendLog(code, 'action', `${label} : ${rollDetail} — paré par le Firewall.`);
+    await publishAttack(code, { attacker: label, outcome: 'blocked', detail: rollDetail });
     return;
   }
   await applyMatrixDamage(code, net, label);
+  await publishAttack(code, {
+    attacker: label,
+    outcome: 'deckDamage',
+    amount: net,
+    detail: rollDetail,
+  });
 }
 
 /** Déclenche la contre-mesure du niveau de sécurité du nœud (bouton MJ, §3.6). */
@@ -289,6 +307,11 @@ export async function triggerConvergence(code: string, deckDamage: number): Prom
     const after = Math.min(MONITORS.deck, (d().deckCondition ?? 0) + deckDamage);
     await updateDecker(code, { deckCondition: after });
     await appendLog(code, 'damage', `Le DIEU grille le deck : ${deckDamage} dégât(s) (${after}/${MONITORS.deck}).`);
+    await publishAttack(code, {
+      attacker: 'Le DIEU (Convergence)',
+      outcome: 'convergence',
+      amount: deckDamage,
+    });
   }
 }
 

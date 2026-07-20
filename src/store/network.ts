@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type {
+  AttackEvent,
   CountdownsState,
   DeckerState,
   EnvironmentState,
@@ -22,6 +23,7 @@ interface NetworkStore {
   environment: EnvironmentState;
   countdowns: CountdownsState;
   lastRoll: RollRecord | null;
+  lastAttack: AttackEvent | null;
   minigame: MiniGameState | null;
   log: Record<string, LogEntry>;
   reset: () => void;
@@ -36,6 +38,7 @@ const empty = {
   environment: {} as EnvironmentState,
   countdowns: {} as CountdownsState,
   lastRoll: null,
+  lastAttack: null,
   minigame: null,
   log: {},
 };

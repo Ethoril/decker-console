@@ -2,6 +2,7 @@ import { get, push, ref, serverTimestamp, set, update } from 'firebase/database'
 import { getDb } from '../firebase';
 import { useNetworkStore } from '../store/network';
 import type {
+  AttackEvent,
   DeckerState,
   EnvironmentState,
   IconKind,
@@ -188,6 +189,25 @@ export async function setIntervention(code: string, value: number | null): Promi
 /** Publie le dernier jet (miroir MJ, dé de complication inclus). */
 export async function publishRoll(code: string, roll: RollRecord): Promise<void> {
   await set(ref(getDb(), `${sessionPath(code)}/lastRoll`), roll);
+}
+
+// ----------------------------------------------------------------- attaques
+
+/**
+ * Publie la dernière attaque subie par le decker (miroir → notification
+ * joueur). L'id (clé push Firebase) garantit qu'un nouvel événement est
+ * détecté même si deux attaques successives portent des données identiques.
+ */
+export async function publishAttack(
+  code: string,
+  event: Omit<AttackEvent, 'id' | 'ts'>,
+): Promise<void> {
+  const id = push(ref(getDb(), `${sessionPath(code)}/lastAttack`)).key ?? '';
+  await set(ref(getDb(), `${sessionPath(code)}/lastAttack`), {
+    ...event,
+    id,
+    ts: serverTimestamp(),
+  });
 }
 
 // -------------------------------------------------------------- mini-jeux

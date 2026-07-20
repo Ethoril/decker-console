@@ -38,12 +38,30 @@ import {
 } from '../game/pools';
 import { deckerDefaults, useNetworkStore } from '../store/network';
 import { useSessionStore } from '../store/session';
-import type { Link, MatrixIcon, NetworkNode } from '../types';
+import type { AttackEvent, Link, MatrixIcon, NetworkNode } from '../types';
+
+/** Traduit un événement d'attaque structuré en libellé pour la popup joueur. */
+function describeAttack(a: AttackEvent): string {
+  const detail = a.detail ? ` (${a.detail})` : '';
+  switch (a.outcome) {
+    case 'dodged':
+      return `Attaque esquivée${detail}`;
+    case 'blocked':
+      return `Bloqué par le Firewall${detail}`;
+    case 'deckDamage':
+      return `${a.amount ?? 0} dégât(s) au deck${detail}`;
+    case 'physicalDamage':
+      return `${a.amount ?? 0} dégât(s) physique(s)${detail}`;
+    case 'convergence':
+      return `${a.amount ?? 0} dégât(s) au deck — éjection`;
+  }
+}
 
 export default function DeckerView() {
   const code = useSessionStore((s) => s.code)!;
   const leave = useSessionStore((s) => s.leave);
-  const { meta, nodes, links, icons, decker, environment, log } = useNetworkStore();
+  const { meta, nodes, links, icons, decker, environment, log, lastAttack } =
+    useNetworkStore();
   const short = useIsShort();
 
   const [selection, setSelection] = useState<MapSelection | null>(null);
@@ -109,61 +127,24 @@ export default function DeckerView() {
     }
   }, [activeAlert]);
 
-  // Alerte popup quand le decker est attaqué. On n'ancre la détection que sur
-  // les préfixes STRUCTURELS émis par le moteur de menace (game/threat.ts) pour
-  // une attaque *subie* — jamais sur du texte générique, sinon les actions du
-  // decker (frapper une GLACE = « … : X dégât(s) ») ou volontaires (changement
-  // de mode = « … Étourdissant ») déclencheraient de faux positifs.
-  const prevLogsRef = useRef<Set<string> | null>(null);
+  // Popup quand le decker est attaqué. Piloté par le canal structuré
+  // `lastAttack` (écrit par game/threat.ts à la source) : plus de parsing du
+  // journal, donc plus de faux positifs sur les actions du decker.
+  const seenAttackId = useRef<string | null>(null);
   useEffect(() => {
-    const logIds = Object.keys(log);
-    // Armement à la première hydratation non vide (cf. alertes nœud ci-dessus) :
-    // évite de rejouer la dernière attaque historique après un rechargement.
-    if (prevLogsRef.current === null) {
-      if (logIds.length === 0) return;
-      prevLogsRef.current = new Set(logIds);
+    if (!lastAttack) return;
+    // Première hydratation : on mémorise sans afficher (anti-rejeu au reload).
+    if (seenAttackId.current === null) {
+      seenAttackId.current = lastAttack.id;
       return;
     }
-
-    const freshIds = logIds.filter((id) => !prevLogsRef.current!.has(id));
-    const freshEntries = freshIds
-      .map((id) => log[id])
-      .sort((a, b) => a.ts - b.ts);
-
-    for (const entry of freshEntries) {
-      const text = entry.text;
-      let attacker = '';
-      let result = '';
-
-      if (text.includes('attaque le decker') && text.includes('— esquivé')) {
-        const match = text.match(/^(.+) attaque le decker/);
-        attacker = match ? match[1] : 'Système';
-        const matchResult = text.match(/decker : (.+) — esquivé/);
-        result = 'Attaque esquivée' + (matchResult ? ` (${matchResult[1]})` : '');
-      } else if (text.includes('— paré par le Firewall')) {
-        const match = text.match(/^(.+?) : (.+) — paré/);
-        attacker = match ? match[1] : 'Contre-mesure';
-        result = 'Bloqué par le Firewall' + (match ? ` (${match[2]})` : '');
-      } else if (text.startsWith('Attaque de ')) {
-        // Dégâts / Étourdissant infligés au decker par une GLACE.
-        const match = text.match(/^Attaque de (.+?) : (.+)/);
-        if (match) {
-          attacker = match[1];
-          result = match[2];
-        }
-      } else if (text.startsWith('Le DIEU grille le deck')) {
-        const match = text.match(/^Le DIEU grille le deck : (.+)/);
-        attacker = 'Le DIEU (Convergence)';
-        result = match ? match[1] : '';
-      }
-
-      if (attacker && result) {
-        setActiveAttack({ attacker, result });
-      }
-    }
-
-    prevLogsRef.current = new Set(logIds);
-  }, [log]);
+    if (lastAttack.id === seenAttackId.current) return;
+    seenAttackId.current = lastAttack.id;
+    setActiveAttack({
+      attacker: lastAttack.attacker,
+      result: describeAttack(lastAttack),
+    });
+  }, [lastAttack]);
 
   const deckDown = deckCondition >= MONITORS.deck;
   const rebooting = rebootCountdown > 0;
