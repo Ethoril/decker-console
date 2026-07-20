@@ -16,7 +16,9 @@ import {
   moveIcon,
   updateNode,
 } from '../sync/write';
-import type { IconKind } from '../types';
+import type { IconKind, IceType } from '../types';
+import { ICE_EFFECTS } from '../data/ice';
+import { ICE_LABELS } from '../components/map/shapes';
 
 type Mode = 'edit' | 'game';
 type Tool = 'select' | 'addNode' | 'link' | 'addIce' | 'addSpider' | 'addHacker';
@@ -184,6 +186,29 @@ export default function GmView() {
               <button className="btn w-full text-left text-xs" onClick={() => copyLink('decker')}>
                 ⎘ Copier lien Decker
               </button>
+
+              <div className="mt-4 border-t border-grid pt-3">
+                <details className="group border border-grid rounded bg-panel-2 p-2">
+                  <summary className="cursor-pointer text-[10px] font-bold text-neon-cyan uppercase tracking-wider select-none outline-none">
+                    📖 Glossaire GLACEs
+                  </summary>
+                  <div className="mt-2 flex flex-col gap-2 max-h-56 overflow-y-auto text-[9px] leading-3.5 text-ink-dim pr-1 scrollbar-thin">
+                    {(Object.entries(ICE_EFFECTS) as Array<[IceType, typeof ICE_EFFECTS[IceType]]>).map(([type, eff]) => (
+                      <div key={type} className="border-b border-grid pb-1.5 last:border-0 last:pb-0">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-neon-amber uppercase">{ICE_LABELS[type]}</span>
+                          <span className="text-[8px] text-neon-cyan opacity-80">
+                            {eff.attackBonus > 0 ? `+${eff.attackBonus}D Atk` : ''}
+                            {eff.alwaysPhysical ? ' (Physique)' : ''}
+                          </span>
+                        </div>
+                        {eff.onHitText && <p className="mt-0.5 text-neon-red">Impact : {eff.onHitText}</p>}
+                        {eff.passiveText && <p className="mt-0.5">{eff.passiveText}</p>}
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              </div>
             </div>
           ) : (
             <GamePanel code={code} />

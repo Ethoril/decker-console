@@ -42,15 +42,28 @@ export function IconPanel({
         <>
           <CommitField label="Label" value={icon.label} onCommit={(v) => patch({ label: v })} />
           {icon.kind === 'ice' && (
-            <SelectField
-              label="Type de GLACE"
-              value={icon.iceType ?? ''}
-              options={[
-                ['', '— non défini —'],
-                ...(Object.entries(ICE_LABELS) as Array<[IceType, string]>),
-              ]}
-              onChange={(v) => patch({ iceType: (v || null) as IceType | null })}
-            />
+            <>
+              <SelectField
+                label="Type de GLACE"
+                value={icon.iceType ?? ''}
+                options={[
+                  ['', '— non défini —'],
+                  ...(Object.entries(ICE_LABELS) as Array<[IceType, string]>),
+                ]}
+                onChange={(v) => patch({ iceType: (v || null) as IceType | null })}
+              />
+              {icon.iceType && (
+                <div className="mt-1 mb-2 rounded border border-grid bg-panel-2 p-2 text-[10px] leading-4 text-ink-dim">
+                  <p>
+                    FW {ICE_STATS.firewall} · Log {ICE_STATS.logique} · attaque{' '}
+                    {ICE_STATS.attackPool}D{effect?.attackBonus ? `+${effect.attackBonus}` : ''} ·
+                    dégâts {ICE_STATS.baseDamage}+nets
+                  </p>
+                  {effect?.onHitText && <p className="text-neon-red">Impact : {effect.onHitText}</p>}
+                  {effect?.passiveText && <p>{effect.passiveText}</p>}
+                </div>
+              )}
+            </>
           )}
           <NumberField
             label="Condition"
