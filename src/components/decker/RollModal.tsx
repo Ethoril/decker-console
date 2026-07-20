@@ -45,6 +45,10 @@ export interface RollRequest {
   /** Applique l'effet du jet et retourne le résumé (outcome). */
   apply: (successes: number) => Promise<string>;
   miniGame?: { kind: MiniGameKind; context: MiniGameRequestContext };
+  /** Identifiant du nœud cible pour proposer le déplacement après réussite. */
+  hackTargetId?: string;
+  /** Marks du nœud avant le hack — sert à ne proposer le déplacement que sur un gain réel d'accès. */
+  hackMarksBefore?: number;
 }
 
 type AutomaticResolution =

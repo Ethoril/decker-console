@@ -148,6 +148,8 @@ export default function DeckerView() {
         kind: approach === 'corruption' ? 'injection' : 'overload',
         context: { type: 'hack', nodeId: hackTargetId, approach },
       },
+      hackTargetId,
+      hackMarksBefore: target.marks,
     });
   };
 
@@ -214,6 +216,24 @@ export default function DeckerView() {
 
   const doMove = async () => {
     if (selectedNodeId && (await moveDeckerTo(code, selectedNodeId))) setSelection(null);
+  };
+
+  const handleRollClose = () => {
+    const targetNodeId = roll?.hackTargetId;
+    const marksBefore = roll?.hackMarksBefore ?? 0;
+    setRoll(null);
+    if (!targetNodeId) return;
+    // La résolution du jet (chemin direct ou mini-jeu) a déjà été awaitée : la
+    // latency-compensation Firebase a rafraîchi le store, on lit donc directement.
+    const node = useNetworkStore.getState().nodes[targetNodeId];
+    // On ne propose le déplacement que si CE hack a réellement gagné un Mark
+    // (évite un « Hack réussi » trompeur sur un re-hack raté ou une annulation).
+    if (node && node.marks > marksBefore && canMoveTo(targetNodeId).ok) {
+      const confirmMove = window.confirm(
+        `Hack réussi ! Voulez-vous vous déplacer sur « ${knownLabel(targetNodeId)} » ?`,
+      );
+      if (confirmMove) void moveDeckerTo(code, targetNodeId);
+    }
   };
 
   const doControlDevice = async () => {
@@ -558,7 +578,7 @@ export default function DeckerView() {
         )}
       </div>
 
-      {roll && <RollModal code={code} request={roll} onClose={() => setRoll(null)} />}
+      {roll && <RollModal code={code} request={roll} onClose={handleRollClose} />}
 
       {/* Convergence du DIEU : plein écran rouge */}
       {convergence && (
