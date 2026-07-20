@@ -130,7 +130,7 @@ export async function createIcon(
     kind,
     nodeId,
     iceType: null,
-    revealed: false,
+    revealed: true,
     visibleToPlayer: false,
     label: defaults[kind],
     condition: 6,

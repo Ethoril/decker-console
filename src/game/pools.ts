@@ -43,7 +43,7 @@ export function infiltrationPool(
   return lines;
 }
 
-/** Perception matricielle (scan des environs, analyse d'une GLACE). */
+/** Perception matricielle (scan des environs). */
 export function perceptionPool(): PoolLine[] {
   return [
     line('logique', 'Logique', PERSONA.logique),

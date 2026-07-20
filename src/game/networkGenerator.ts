@@ -51,29 +51,29 @@ function generateSecurityIcons(
   const icons: Record<string, MatrixIcon> = {
     patrol: {
       kind: 'ice', nodeId: 'gateway', iceType: 'patrouilleuse',
-      revealed: false, visibleToPlayer: true, label: 'Sentinelle', condition: 6,
+      revealed: true, visibleToPlayer: true, label: 'Sentinelle', condition: 6,
     },
   };
 
   if (difficulty !== 'low') {
     icons.blocker = {
       kind: 'ice', nodeId: strongest, iceType: 'bloqueuse',
-      revealed: false, visibleToPlayer: false, label: 'Verrou', condition: 6,
+      revealed: true, visibleToPlayer: false, label: 'Verrou', condition: 6,
     };
   }
 
   if (difficulty === 'high') {
     icons.tracer = {
       kind: 'ice', nodeId: middle, iceType: 'traceuse',
-      revealed: false, visibleToPlayer: false, label: 'Limier', condition: 6,
+      revealed: true, visibleToPlayer: false, label: 'Limier', condition: 6,
     };
     icons.tar = {
       kind: 'ice', nodeId: deepest, iceType: 'potDeColle',
-      revealed: false, visibleToPlayer: false, label: 'Goudron', condition: 6,
+      revealed: true, visibleToPlayer: false, label: 'Goudron', condition: 6,
     };
     icons.killer = {
       kind: 'ice', nodeId: strongest, iceType: 'tueuse',
-      revealed: false, visibleToPlayer: false, label: 'Cerbère', condition: 8,
+      revealed: true, visibleToPlayer: false, label: 'Cerbère', condition: 8,
     };
     icons.spider = {
       kind: 'spider', nodeId: strongest, iceType: null,

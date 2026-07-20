@@ -3,7 +3,7 @@ import { getDb } from '../firebase';
 import { PERSONA } from '../data/persona';
 import { marksFromSuccesses } from '../data/security';
 import { deckerDefaults, useNetworkStore } from '../store/network';
-import { appendLog, publishRoll, setDeckerNode, updateDecker, updateIcon } from '../sync/write';
+import { appendLog, publishRoll, setDeckerNode, updateDecker } from '../sync/write';
 import type { ConnectionMode, RollRecord } from '../types';
 import { adjacentNodeIds } from './graph';
 
@@ -58,21 +58,6 @@ export async function applyScan(code: string, successes: number): Promise<string
   return revealed.length > 0
     ? `${revealed.length} nœud(s) détecté(s)`
     : 'rien de nouveau à détecter';
-}
-
-/**
- * Analyse d'une GLACE visible : ≥ 2 succès → type révélé (`revealed: true`).
- * NB : seule écriture du joueur sur icons/ — c'est l'effet mécanique de son scan.
- */
-export async function applyIceAnalysis(
-  code: string,
-  iconId: string,
-  successes: number,
-): Promise<string> {
-  if (successes < 2) return 'échec, GLACE non identifiée';
-  await updateIcon(code, iconId, { revealed: true });
-  const icon = useNetworkStore.getState().icons[iconId];
-  return `GLACE identifiée : ${icon?.iceType ?? 'type non défini par le MJ'}`;
 }
 
 // -------------------------------------------------------------------- hack

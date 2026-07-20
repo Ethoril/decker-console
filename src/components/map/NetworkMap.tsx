@@ -546,7 +546,7 @@ export default function NetworkMap({
 }
 
 function IconGlyph({ icon, fog }: { icon: MatrixIcon; fog: boolean }) {
-  const showType = icon.revealed && icon.iceType;
+  const showType = icon.iceType;
   switch (icon.kind) {
     case 'ice':
       return (

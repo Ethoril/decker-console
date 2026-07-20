@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, useRef } from 'react';
 import NetworkMap, { type MapSelection } from '../components/map/NetworkMap';
 import { ICE_LABELS, NODE_TYPE_LABELS } from '../components/map/shapes';
+import { ICE_EFFECTS, ICE_STATS } from '../data/ice';
 import { DieuDial, MonitorBoxes } from '../components/decker/Monitors';
 import { RollModal, type RollRequest } from '../components/decker/RollModal';
 import { PresenceDot, SideColumn, useIsShort } from '../components/ui';
@@ -10,7 +11,6 @@ import { MARK_RIGHTS } from '../data/security';
 import {
   APPROACH_LABELS,
   applyHack,
-  applyIceAnalysis,
   applyScan,
   canMoveTo,
   controlDevice,
@@ -220,16 +220,6 @@ export default function DeckerView() {
       withComplication: false,
       apply: (s) => applyScan(code, s),
     });
-
-  const startIceAnalysis = () => {
-    if (!selectedIconId) return;
-    setRoll({
-      action: 'Perception matricielle — analyse de GLACE',
-      lines: perceptionPool(),
-      withComplication: false,
-      apply: (s) => applyIceAnalysis(code, selectedIconId, s),
-    });
-  };
 
   const startHack = (approach: HackApproach) => {
     setApproachPick(false);
@@ -536,29 +526,13 @@ export default function DeckerView() {
               ◈ Scanner les environs
             </button>
 
-            {!approachPick ? (
-              <button
-                className="btn btn-cyan text-xs"
-                disabled={actionsLocked || !hackTargetId}
-                onClick={() => setApproachPick(true)}
-              >
-                ⚡ Hacker {hackTargetId ? `« ${knownLabel(hackTargetId)} »` : ''}
-              </button>
-            ) : (
-              <div className="grid grid-cols-2 gap-1">
-                <button className="btn btn-red h-auto py-2 text-[11px]" onClick={() => startHack('bruteForce')}>
-                  <span className="block">Force Brute</span>
-                  <span className="mt-1 block text-[9px] leading-3 opacity-70">Rapide · échec = dégâts</span>
-                </button>
-                <button
-                  className="btn btn-magenta h-auto py-2 text-[11px]"
-                  onClick={() => startHack('corruption')}
-                >
-                  <span className="block">Corruption</span>
-                  <span className="mt-1 block text-[9px] leading-3 opacity-70">Discrète · échec = alerte</span>
-                </button>
-              </div>
-            )}
+            <button
+              className="btn btn-cyan text-xs"
+              disabled={actionsLocked || !hackTargetId}
+              onClick={() => setApproachPick(true)}
+            >
+              ⚡ Hacker {hackTargetId ? `« ${knownLabel(hackTargetId)} »` : ''}
+            </button>
 
             <button
               className="btn btn-red text-xs"
@@ -573,13 +547,7 @@ export default function DeckerView() {
             </button>
             {move.reason && <p className="text-[10px] leading-4 text-neon-amber">{move.reason}</p>}
 
-            {selectedIcon && !selectedIcon.revealed && (
-              <button className="btn btn-cyan text-xs" disabled={actionsLocked} onClick={startIceAnalysis}>
-                ◇ Analyser la GLACE
-              </button>
-            )}
             {selectedIcon?.kind === 'ice' &&
-              selectedIcon.revealed &&
               selectedIcon.iceType === 'traceuse' && (
                 <button className="btn btn-magenta text-xs" disabled={actionsLocked} onClick={startJamming}>
                   ◌ Brouiller la Traceuse
@@ -658,15 +626,45 @@ export default function DeckerView() {
             <div className="mt-3 rounded border border-grid bg-panel-2 p-2 text-xs leading-5">
               <h4 className="panel-title">Icône</h4>
               {selectedIcon.kind === 'ice' ? (
-                selectedIcon.revealed && selectedIcon.iceType ? (
-                  <p className="text-neon-red">GLACE — {ICE_LABELS[selectedIcon.iceType]}</p>
-                ) : (
-                  <p className="text-neon-red">GLACE non identifiée</p>
-                )
+                <>
+                  <p className="text-neon-red font-semibold">
+                    GLACE — {selectedIcon.iceType ? ICE_LABELS[selectedIcon.iceType] : 'Non spécifiée'}
+                  </p>
+                  {selectedIcon.iceType && (
+                    <div className="mt-2 border-t border-grid/40 pt-1.5 text-[11px] leading-4 text-ink-dim space-y-1">
+                      <p>
+                        <span className="font-semibold text-ink">Stats :</span> FW {ICE_STATS.firewall} · Logique {ICE_STATS.logique} · Attaque {ICE_STATS.attackPool}D
+                        {ICE_EFFECTS[selectedIcon.iceType].attackBonus > 0 ? ` (+${ICE_EFFECTS[selectedIcon.iceType].attackBonus} Combat)` : ''} · Dégâts {ICE_STATS.baseDamage} {ICE_EFFECTS[selectedIcon.iceType].alwaysPhysical ? 'Physique' : 'Étourdissant'} · Condition {selectedIcon.condition}
+                      </p>
+                      {ICE_EFFECTS[selectedIcon.iceType].onHitText && (
+                        <p>
+                          <span className="font-semibold text-neon-red">Impact :</span>{' '}
+                          {ICE_EFFECTS[selectedIcon.iceType].onHitText}
+                        </p>
+                      )}
+                      {ICE_EFFECTS[selectedIcon.iceType].passiveText && (
+                        <p>
+                          <span className="font-semibold text-neon-cyan">Passif :</span>{' '}
+                          {ICE_EFFECTS[selectedIcon.iceType].passiveText}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </>
               ) : selectedIcon.kind === 'spider' ? (
-                <p className="text-neon-amber">Spider</p>
+                <div className="space-y-1">
+                  <p className="text-neon-amber font-semibold">Spider</p>
+                  <p className="text-[11px] leading-4 text-ink-dim border-t border-grid/40 pt-1.5">
+                    Hacker de sécurité humain patrouillant le réseau.
+                  </p>
+                </div>
               ) : (
-                <p className="text-neon-magenta">Hacker ennemi</p>
+                <div className="space-y-1">
+                  <p className="text-neon-magenta font-semibold">Hacker ennemi</p>
+                  <p className="text-[11px] leading-4 text-ink-dim border-t border-grid/40 pt-1.5">
+                    Utilisateur hostile connecté au réseau.
+                  </p>
+                </div>
               )}
             </div>
           )}
@@ -701,6 +699,161 @@ export default function DeckerView() {
           </div>
         )}
       </div>
+
+      {/* Modal de sélection de l'approche de Hacking */}
+      {approachPick && hackTargetId && (
+        <div
+          className="fixed inset-0 z-40 flex items-center justify-center p-3 bg-abyss/85 backdrop-blur-sm"
+          onClick={() => setApproachPick(false)}
+        >
+          <div
+            className="relative z-10 flex w-full max-w-2xl flex-col gap-4 rounded-lg border border-grid bg-panel p-5 shadow-[0_0_40px_rgba(46,230,255,0.15)] max-h-[95vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Entête */}
+            <div className="flex items-start justify-between border-b border-grid pb-3">
+              <div>
+                <span className="text-[10px] tracking-[0.25em] text-neon-cyan uppercase font-bold">Sélection de l'approche</span>
+                <h2 className="text-base font-bold tracking-wider text-ink mt-1">
+                  Hacker le nœud « {knownLabel(hackTargetId)} »
+                </h2>
+              </div>
+              <button
+                className="btn min-h-0 h-8 w-8 flex items-center justify-center px-0 py-0 text-sm border-grid text-ink-dim hover:text-ink hover:border-ink-dim"
+                onClick={() => setApproachPick(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Description générale */}
+            <p className="text-xs text-ink-dim leading-relaxed">
+              Choisissez la méthode pour infiltrer ce nœud (Sécurité <span className="text-neon-cyan font-bold">{nodes[hackTargetId]?.security}</span>).
+              L'approche détermine le mini-jeu lancé après le jet de dés, ainsi que le type de représailles du système en cas d'échec.
+            </p>
+
+            {/* Cartes d'approche */}
+            <div className="grid grid-cols-2 gap-4 my-1">
+              {/* Carte Force Brute */}
+              <div
+                role="button"
+                tabIndex={0}
+                aria-label="Hacker en Force Brute"
+                className="group flex flex-col justify-between rounded-lg border border-neon-red/30 bg-panel-2 p-4 transition-all duration-300 hover:border-neon-red hover:bg-neon-red/5 hover:shadow-[0_0_15px_rgba(255,59,92,0.1)] cursor-pointer focus:outline-none focus-visible:[outline:2px_solid_var(--color-neon-red)] focus-visible:[outline-offset:2px]"
+                onClick={() => startHack('bruteForce')}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    startHack('bruteForce');
+                  }
+                }}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-sm font-bold text-neon-red tracking-wider uppercase group-hover:glow-text">
+                      💥 Force Brute
+                    </h3>
+                    <span className="text-[8px] px-1.5 py-0.5 rounded border border-neon-red/30 text-neon-red uppercase font-semibold">
+                      Offensif
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-ink-dim mb-3 leading-relaxed">
+                    Surchargez les protocoles matriciels pour forcer l'accès. Rapide et destructeur.
+                  </p>
+                  <div className="space-y-1.5 text-[11px]">
+                    <div className="flex items-start gap-1.5">
+                      <span className="text-neon-green">✓</span>
+                      <span className="text-ink"><strong>Réussite</strong> : Obtention de Marks</span>
+                    </div>
+                    <div className="flex items-start gap-1.5">
+                      <span className="text-neon-red">✗</span>
+                      <span className="text-ink-dim group-hover:text-ink transition-colors">
+                        <strong>Échec</strong> : Dégâts au Deck (RA) ou Physiques (RV)
+                      </span>
+                    </div>
+                    <div className="flex items-start gap-1.5">
+                      <span className="text-neon-cyan">🎮</span>
+                      <span className="text-ink-dim">
+                        <strong>Mini-jeu</strong> : Surcharge (timing)
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <span
+                  aria-hidden="true"
+                  className="btn btn-red mt-4 flex w-full items-center justify-center py-1 min-h-[32px] h-8 text-[10px] font-bold uppercase tracking-wider group-hover:bg-neon-red/10 transition-colors"
+                >
+                  Force Brute
+                </span>
+              </div>
+
+              {/* Carte Corruption */}
+              <div
+                role="button"
+                tabIndex={0}
+                aria-label="Hacker en Corruption"
+                className="group flex flex-col justify-between rounded-lg border border-neon-magenta/30 bg-panel-2 p-4 transition-all duration-300 hover:border-neon-magenta hover:bg-neon-magenta/5 hover:shadow-[0_0_15px_rgba(255,46,196,0.1)] cursor-pointer focus:outline-none focus-visible:[outline:2px_solid_var(--color-neon-magenta)] focus-visible:[outline-offset:2px]"
+                onClick={() => startHack('corruption')}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    startHack('corruption');
+                  }
+                }}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-sm font-bold text-neon-magenta tracking-wider uppercase group-hover:glow-text">
+                      🕵️ Corruption
+                    </h3>
+                    <span className="text-[8px] px-1.5 py-0.5 rounded border border-neon-magenta/30 text-neon-magenta uppercase font-semibold">
+                      Furtif
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-ink-dim mb-3 leading-relaxed">
+                    Exploitez discrètement des failles réseau. Subtil et furtif.
+                  </p>
+                  <div className="space-y-1.5 text-[11px]">
+                    <div className="flex items-start gap-1.5">
+                      <span className="text-neon-green">✓</span>
+                      <span className="text-ink"><strong>Réussite</strong> : Infiltration et Marks</span>
+                    </div>
+                    <div className="flex items-start gap-1.5">
+                      <span className="text-neon-magenta">✗</span>
+                      <span className="text-ink-dim group-hover:text-ink transition-colors">
+                        <strong>Échec</strong> : Nœud en <strong>Alerte</strong> (contre-mesures)
+                      </span>
+                    </div>
+                    <div className="flex items-start gap-1.5">
+                      <span className="text-neon-cyan">🎮</span>
+                      <span className="text-ink-dim">
+                        <strong>Mini-jeu</strong> : Injection de code (Mastermind)
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <span
+                  aria-hidden="true"
+                  className="btn btn-magenta mt-4 flex w-full items-center justify-center py-1 min-h-[32px] h-8 text-[10px] font-bold uppercase tracking-wider group-hover:bg-neon-magenta/10 transition-colors"
+                >
+                  Corruption
+                </span>
+              </div>
+
+            </div>
+
+            {/* Pied de page d'annulation */}
+            <div className="flex justify-end border-t border-grid pt-3">
+              <button
+                className="btn min-h-0 h-9 px-4 py-1.5 text-xs font-semibold hover:bg-panel-2"
+                onClick={() => setApproachPick(false)}
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {roll && <RollModal code={code} request={roll} onClose={handleRollClose} />}
 

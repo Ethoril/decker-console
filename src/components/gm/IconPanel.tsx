@@ -67,11 +67,6 @@ export function IconPanel({
         value={icon.visibleToPlayer}
         onChange={(visibleToPlayer) => patch({ visibleToPlayer })}
       />
-      <ToggleField
-        label="Type identifié (revealed)"
-        value={icon.revealed}
-        onChange={(revealed) => patch({ revealed })}
-      />
 
       {mode === 'game' && (
         <>
