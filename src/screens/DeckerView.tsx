@@ -67,7 +67,12 @@ export default function DeckerView() {
   const [logOpen, setLogOpen] = useState(false);
   const [roll, setRoll] = useState<RollRequest | null>(null);
   const [approachPick, setApproachPick] = useState(false);
-  const [revealedInfo, setRevealedInfo] = useState<{ title: string; text: string } | null>(null);
+  const [unlockedFeatures, setUnlockedFeatures] = useState<string[]>([]);
+  const [revealedInfo, setRevealedInfo] = useState<{
+    kind: 'paydata' | 'device';
+    nodeLabel: string;
+    text: string;
+  } | null>(null);
   const [dismissedTrapped, setDismissedTrapped] = useState(false);
 
   const [activeAlert, setActiveAlert] = useState<string | null>(null);
@@ -268,26 +273,10 @@ export default function DeckerView() {
       miniGame: { kind: 'extraction', context: { type: 'escape' } },
     });
 
-  const startPaydataDecrypt = () => {
+  const doReadPaydata = async () => {
     if (!deckerNodeId || !currentNode) return;
-    setRoll({
-      action: `Décryptage paydata — ${knownLabel(deckerNodeId)}`,
-      lines: infiltrationPool(currentNode, environment),
-      withComplication: true,
-      successPenalty,
-      apply: async (successes) => {
-        if (successes < 1) return 'échec — chiffrement intact';
-        const text = await readPaydata(code, deckerNodeId);
-        if (!text) return 'aucune paydata exploitable';
-        setRevealedInfo({ title: 'Paydata', text });
-        return 'paydata déchiffrée';
-      },
-      miniGame: {
-        kind: 'decryption',
-        context: { type: 'paydata', nodeId: deckerNodeId },
-      },
-      forcedMinigame: currentNode.forcedMinigame ?? null,
-    });
+    const text = await readPaydata(code, deckerNodeId);
+    if (text) setRevealedInfo({ kind: 'paydata', nodeLabel: knownLabel(deckerNodeId), text });
   };
 
   const startJamming = () =>
@@ -320,6 +309,21 @@ export default function DeckerView() {
     // La résolution du jet (chemin direct ou mini-jeu) a déjà été awaitée : la
     // latency-compensation Firebase a rafraîchi le store, on lit donc directement.
     const node = useNetworkStore.getState().nodes[targetNodeId];
+    
+    // Détection des déblocages
+    if (node && node.marks > marksBefore) {
+      const newlyUnlocked: string[] = [];
+      if (marksBefore < 2 && node.marks >= 2 && node.paydata) {
+        newlyUnlocked.push('Paydata décrypté');
+      }
+      if (marksBefore < 3 && node.marks >= 3 && node.deviceInfo) {
+        newlyUnlocked.push('Accès périphérique obtenu');
+      }
+      if (newlyUnlocked.length > 0) {
+        setUnlockedFeatures(newlyUnlocked);
+      }
+    }
+
     // On ne propose le déplacement que si CE hack a réellement gagné un Mark
     // (évite un « Hack réussi » trompeur sur un re-hack raté ou une annulation).
     if (node && node.marks > marksBefore && canMoveTo(targetNodeId).ok) {
@@ -333,7 +337,7 @@ export default function DeckerView() {
   const doControlDevice = async () => {
     if (!deckerNodeId) return;
     const text = await controlDevice(code, deckerNodeId);
-    if (text) setRevealedInfo({ title: 'Périphérique', text });
+    if (text) setRevealedInfo({ kind: 'device', nodeLabel: knownLabel(deckerNodeId), text });
   };
 
   const doReboot = () => {
@@ -469,6 +473,16 @@ export default function DeckerView() {
           <DieuDial
             surveillance={decker.surveillance ?? 0}
           />
+          <div className="mt-2">
+            <button
+              className="btn w-full text-xs"
+              disabled={rebooting || trapped}
+              title={trapped ? 'Pot de colle : reboot impossible' : undefined}
+              onClick={doReboot}
+            >
+              ⟳ Rebooter (Surveillance → 0, 3 tours)
+            </button>
+          </div>
         </SideColumn>
 
         {/* Carte avec fog of war */}
@@ -558,49 +572,49 @@ export default function DeckerView() {
                 </button>
               )}
 
-            <button
-              className="btn text-xs"
-              disabled={actionsLocked || !currentNode || currentNode.marks < 2 || !currentNode.paydata}
-              onClick={startPaydataDecrypt}
-            >
-              ▤ Décrypter le paydata (≥ 2 Marks)
-            </button>
-            <button
-              className="btn text-xs"
-              disabled={actionsLocked || !currentNode || currentNode.marks < 3 || !currentNode.deviceInfo}
-              onClick={() => void doControlDevice()}
-            >
-              ⌘ Contrôler le périphérique (≥ 3 Marks)
-            </button>
-
             <hr className="my-1 border-grid" />
+            <h4 className="text-[10px] text-ink-dim uppercase tracking-wider mb-0.5">Acquisitions Automatiques</h4>
+            <div className="flex flex-col gap-1.5 border border-grid p-2 rounded bg-panel-2">
+              <button
+                className={`text-left text-xs p-1.5 rounded border transition-colors flex items-center justify-between ${
+                  currentNode && currentNode.marks >= 2 && currentNode.paydata
+                    ? 'border-neon-green/50 bg-neon-green/10 text-neon-green hover:bg-neon-green/20 cursor-pointer'
+                    : 'border-transparent text-ink-dim opacity-50 cursor-not-allowed'
+                }`}
+                disabled={actionsLocked || !currentNode || currentNode.marks < 2 || !currentNode.paydata}
+                onClick={doReadPaydata}
+              >
+                <span>▤ Décrypter le paydata</span>
+                {!(currentNode && currentNode.marks >= 2)
+                  ? <span className="text-[9px] opacity-70">(≥ 2 Marks)</span>
+                  : !currentNode?.paydata && <span className="text-[9px] opacity-70">(aucune donnée)</span>}
+              </button>
+              
+              <button
+                className={`text-left text-xs p-1.5 rounded border transition-colors flex items-center justify-between ${
+                  currentNode && currentNode.marks >= 3 && currentNode.deviceInfo
+                    ? 'border-neon-green/50 bg-neon-green/10 text-neon-green hover:bg-neon-green/20 cursor-pointer'
+                    : 'border-transparent text-ink-dim opacity-50 cursor-not-allowed'
+                }`}
+                disabled={actionsLocked || !currentNode || currentNode.marks < 3 || !currentNode.deviceInfo}
+                onClick={() => void doControlDevice()}
+              >
+                <span>⌘ Contrôler le périphérique</span>
+                {!(currentNode && currentNode.marks >= 3)
+                  ? <span className="text-[9px] opacity-70">(≥ 3 Marks)</span>
+                  : !currentNode?.deviceInfo && <span className="text-[9px] opacity-70">(aucun périphérique)</span>}
+              </button>
+            </div>
 
             {trapped && (
-              <button className="btn btn-red text-xs" disabled={actionsLocked} onClick={startEscape}>
-                ⛓ S'arracher au Pot de colle
-              </button>
-            )}
-            <button
-              className="btn text-xs"
-              disabled={rebooting || trapped}
-              title={trapped ? 'Pot de colle : reboot impossible' : undefined}
-              onClick={doReboot}
-            >
-              ⟳ Rebooter (Surveillance → 0, 3 tours)
-            </button>
-          </div>
-
-          {revealedInfo && (
-            <div className="mt-3 rounded border border-neon-green/40 bg-panel-2 p-2 text-xs leading-5">
-              <div className="flex items-center justify-between">
-                <h4 className="panel-title mb-1">{revealedInfo.title}</h4>
-                <button className="btn px-1.5 py-0 text-[10px]" onClick={() => setRevealedInfo(null)}>
-                  ✕
+              <>
+                <hr className="my-1 border-grid" />
+                <button className="btn btn-red text-xs" disabled={actionsLocked} onClick={startEscape}>
+                  ⛓ S'arracher au Pot de colle
                 </button>
-              </div>
-              <p className="text-neon-green">{revealedInfo.text}</p>
-            </div>
-          )}
+              </>
+            )}
+          </div>
 
           {selectedNode && (
             <div className="mt-3 rounded border border-grid bg-panel-2 p-2 text-xs leading-5">
@@ -968,6 +982,71 @@ export default function DeckerView() {
               onClick={() => setDismissedTrapped(true)}
             >
               Compris
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal des nouvelles acquisitions */}
+      {unlockedFeatures.length > 0 && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-abyss/85 backdrop-blur-sm"
+          onClick={() => setUnlockedFeatures([])}
+        >
+          <div
+            className="relative z-10 flex w-full max-w-sm flex-col gap-4 rounded-lg border border-neon-green bg-panel p-5 shadow-[0_0_40px_rgba(46,255,100,0.15)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-center mb-2">
+              <span className="text-3xl">🔓</span>
+            </div>
+            <h2 className="text-center text-lg font-bold tracking-wider text-neon-green uppercase">
+              Accès déverrouillé
+            </h2>
+            <div className="space-y-3 mt-2 text-sm text-ink text-center">
+              {unlockedFeatures.map((f, i) => (
+                <p key={i} className="font-semibold text-neon-cyan">{f}</p>
+              ))}
+            </div>
+            <button
+              className="btn btn-cyan mt-4 w-full py-2 text-xs font-bold tracking-widest uppercase"
+              onClick={() => setUnlockedFeatures([])}
+            >
+              Consulter
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Popup d'explication de l'élément consulté */}
+      {revealedInfo && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-abyss/85 backdrop-blur-sm"
+          onClick={() => setRevealedInfo(null)}
+        >
+          <div
+            className="relative z-10 flex w-full max-w-sm flex-col gap-3 rounded-lg border border-neon-green bg-panel p-5 shadow-[0_0_40px_rgba(46,255,100,0.15)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-center">
+              <span className="text-3xl">{revealedInfo.kind === 'paydata' ? '▤' : '⌘'}</span>
+            </div>
+            <h2 className="text-center text-lg font-bold tracking-wider text-neon-green uppercase">
+              {revealedInfo.kind === 'paydata' ? 'Paydata décryptée' : 'Périphérique sous contrôle'}
+            </h2>
+            <p className="text-center text-[11px] text-ink-dim">
+              {revealedInfo.kind === 'paydata'
+                ? `Les données confidentielles du nœud « ${revealedInfo.nodeLabel} » sont désormais lisibles :`
+                : `Vous pilotez à présent le périphérique rattaché au nœud « ${revealedInfo.nodeLabel} » :`}
+            </p>
+            <div className="rounded border border-neon-green/40 bg-panel-2 p-3 text-sm leading-5 text-neon-green">
+              {revealedInfo.text}
+            </div>
+            <button
+              className="btn btn-cyan mt-2 w-full py-2 text-xs font-bold tracking-widest uppercase"
+              onClick={() => setRevealedInfo(null)}
+            >
+              Fermer
             </button>
           </div>
         </div>
