@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import NetworkMap, { type MapSelection } from '../components/map/NetworkMap';
 import { ICE_LABELS, NODE_TYPE_LABELS } from '../components/map/shapes';
 import { DieuDial, MonitorBoxes } from '../components/decker/Monitors';
@@ -51,6 +51,7 @@ export default function DeckerView() {
   const [roll, setRoll] = useState<RollRequest | null>(null);
   const [approachPick, setApproachPick] = useState(false);
   const [revealedInfo, setRevealedInfo] = useState<{ title: string; text: string } | null>(null);
+  const [dismissedTrapped, setDismissedTrapped] = useState(false);
 
   const luck = decker.luck ?? deckerDefaults.luck;
   const stun = decker.stun ?? deckerDefaults.stun;
@@ -63,6 +64,13 @@ export default function DeckerView() {
   const debuffs = decker.debuffs ?? {};
   const programs = decker.programs ?? {};
   const deckerNodeId = decker.nodeId ?? null;
+
+  // Réinitialise le dismiss de l'alerte Pot de colle quand le joueur n'est plus piégé
+  useEffect(() => {
+    if (!trapped) {
+      setDismissedTrapped(false);
+    }
+  }, [trapped]);
 
   const deckDown = deckCondition >= MONITORS.deck;
   const rebooting = rebootCountdown > 0;
@@ -605,6 +613,41 @@ export default function DeckerView() {
               <span className="border border-neon-red/20 p-2">SIGNAL // LOST</span>
               <span className="border border-neon-red/20 p-2">GOD // ONLINE</span>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Alerte Pot de colle : plein écran rouge dismissible (la convergence prime) */}
+      {trapped && !dismissedTrapped && !convergence && (
+        <div className="convergence-screen fixed inset-0 z-50 flex items-center justify-center overflow-hidden p-5">
+          <div className="convergence-frame relative w-full max-w-md border border-neon-red/70 bg-abyss/85 p-6 text-center">
+            <div className="mb-4 flex items-center justify-between text-[10px] tracking-[0.25em] text-neon-red/70">
+              <span>ALERTE SYSTÈME</span>
+              <span>POT DE COLLE // ACTIF</span>
+            </div>
+            <p className="glitch-text text-3xl font-bold tracking-[0.1em] text-neon-red uppercase">
+              Persona Piégé
+            </p>
+            <div className="mx-auto my-4 h-px max-w-xs bg-neon-red/30" />
+            <p className="mt-3 text-xs leading-6 text-ink">
+              Votre avatar matriciel a été verrouillé par une <span className="text-neon-red font-semibold">GLACE Pot de colle</span>.
+            </p>
+            <div className="my-4 rounded border border-neon-red/20 bg-neon-red/5 p-3 text-left text-xs leading-5">
+              <p className="text-neon-red font-semibold mb-1">🚫 CONTRE-MESURES EN PLACE :</p>
+              <ul className="list-disc pl-4 space-y-1 text-ink-dim">
+                <li><span className="text-neon-red">Déconnexion impossible</span> (interdite par le système).</li>
+                <li><span className="text-neon-red">Reboot du deck impossible</span> (Surveillance bloquée).</li>
+              </ul>
+            </div>
+            <p className="text-xs leading-5 text-ink-dim">
+              Utilisez l'action <span className="text-neon-cyan font-semibold">« S'arracher au Pot de colle »</span> (test de Hacking) pour forcer le passage et vous libérer.
+            </p>
+            <button
+              className="btn btn-red mt-6 w-full py-2 text-xs font-bold tracking-widest uppercase"
+              onClick={() => setDismissedTrapped(true)}
+            >
+              Compris
+            </button>
           </div>
         </div>
       )}
