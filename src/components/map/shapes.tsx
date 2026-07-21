@@ -216,17 +216,20 @@ export function IceGlyph({
   fog: boolean;
 }) {
   const showType = !fog || revealed;
-  const stroke = 'var(--color-neon-red)';
-  const fill = 'color-mix(in srgb, var(--color-neon-red) 14%, transparent)';
+  // Schéma inversé : losange plein dans la couleur dominante (rouge), détails en noir.
+  const container = 'var(--color-neon-red)';
+  const detail = 'var(--color-abyss)';
+  const stroke = detail;
+  const fill = container;
 
   if (!showType || !iceType) {
-    // Rendu anonyme (losange rouge + point d'interrogation)
+    // Rendu anonyme (losange rouge plein + point d'interrogation noir)
     return (
       <g>
         <polygon
           points="0,-16 16,0 0,16 -16,0"
-          fill={fill}
-          stroke={stroke}
+          fill={container}
+          stroke={container}
           strokeWidth={2}
           vectorEffect="non-scaling-stroke"
         />
@@ -235,7 +238,7 @@ export function IceGlyph({
           textAnchor="middle"
           fontSize="11"
           fontWeight="bold"
-          fill={stroke}
+          fill={detail}
           style={{ fontFamily: 'var(--font-term)' }}
         >
           ?
@@ -293,20 +296,20 @@ export function IceGlyph({
     case 'noire':
       glyphContent = (
         <g>
-          {/* Crâne plein (silhouette néon) : la GLACE la plus létale se
-              démarque en solide au milieu des autres glyphes en fil de fer. */}
+          {/* Crâne plein noir : la GLACE la plus létale se démarque en solide
+              au milieu des autres glyphes en fil de fer. */}
           <path
             d="M 0,-8 C 5,-8 7,-4.5 7,-1 C 7,1.5 6,3 4.5,4 L 4.5,5.5 C 4.5,6.3 3.8,6.5 3,6.5 L -3,6.5 C -3.8,6.5 -4.5,6.3 -4.5,5.5 L -4.5,4 C -6,3 -7,1.5 -7,-1 C -7,-4.5 -5,-8 0,-8 Z"
-            fill={stroke}
+            fill={detail}
             stroke="none"
           />
-          {/* Orbites creuses */}
-          <circle cx="-3" cy="-1.5" r="2" fill="var(--color-abyss)" stroke="none" />
-          <circle cx="3" cy="-1.5" r="2" fill="var(--color-abyss)" stroke="none" />
+          {/* Orbites creuses (laissent transparaître le fond rouge) */}
+          <circle cx="-3" cy="-1.5" r="2" fill={container} stroke="none" />
+          <circle cx="3" cy="-1.5" r="2" fill={container} stroke="none" />
           {/* Cavité nasale */}
-          <path d="M 0,0.8 L -1.2,3 L 1.2,3 Z" fill="var(--color-abyss)" stroke="none" />
-          {/* Dents (fentes sombres dans la mâchoire) */}
-          <g stroke="var(--color-abyss)" strokeWidth={0.9}>
+          <path d="M 0,0.8 L -1.2,3 L 1.2,3 Z" fill={container} stroke="none" />
+          {/* Dents (fentes claires dans la mâchoire) */}
+          <g stroke={container} strokeWidth={0.9}>
             <line x1="-1.5" y1="4.2" x2="-1.5" y2="6.5" />
             <line x1="0" y1="4.2" x2="0" y2="6.5" />
             <line x1="1.5" y1="4.2" x2="1.5" y2="6.5" />
@@ -344,11 +347,11 @@ export function IceGlyph({
 
   return (
     <g>
-      {/* Conteneur principal (losange rouge agrandi) */}
+      {/* Conteneur principal (losange rouge plein) */}
       <polygon
         points="0,-16 16,0 0,16 -16,0"
-        fill={fill}
-        stroke={stroke}
+        fill={container}
+        stroke={container}
         strokeWidth={2}
         vectorEffect="non-scaling-stroke"
       />
@@ -358,33 +361,39 @@ export function IceGlyph({
 }
 
 /**
- * Rendu du Spider de sécurité avec pattes articulées mécaniques et fente laser rouge.
+ * Rendu du Spider de sécurité : schéma inversé, disque ambre plein (couleur
+ * dominante) et silhouette d'araignée mécanique en noir, avec fente laser rouge.
  */
 export function SpiderGlyph() {
-  const stroke = 'var(--color-neon-amber)';
-  const fill = 'var(--color-panel)';
+  const dominant = 'var(--color-neon-amber)';
+  const detail = 'var(--color-abyss)';
 
   return (
-    <g stroke={stroke} strokeWidth={1.6} vectorEffect="non-scaling-stroke">
-      {/* Pattes articulées (polylignes) */}
-      {/* Gauche */}
-      <polyline points="-3,-3 -9,-9 -13,-4" fill="none" />
-      <polyline points="-4,-1 -11,-3 -15,2" fill="none" />
-      <polyline points="-4,1 -11,3 -15,8" fill="none" />
-      <polyline points="-3,3 -9,9 -12,14" fill="none" />
-      {/* Droite */}
-      <polyline points="3,-3 9,-9 13,-4" fill="none" />
-      <polyline points="4,-1 11,-3 15,2" fill="none" />
-      <polyline points="4,1 11,3 15,8" fill="none" />
-      <polyline points="3,3 9,9 12,14" fill="none" />
+    <g vectorEffect="non-scaling-stroke">
+      {/* Fond circulaire ambre (couleur dominante) */}
+      <circle cx="0" cy="2.5" r="17.5" fill={dominant} stroke="none" />
 
-      {/* Corps robotique */}
+      {/* Pattes articulées noires (polylignes) */}
+      <g stroke={detail} strokeWidth={1.6} fill="none">
+        {/* Gauche */}
+        <polyline points="-3,-3 -9,-9 -13,-4" />
+        <polyline points="-4,-1 -11,-3 -15,2" />
+        <polyline points="-4,1 -11,3 -15,8" />
+        <polyline points="-3,3 -9,9 -12,14" />
+        {/* Droite */}
+        <polyline points="3,-3 9,-9 13,-4" />
+        <polyline points="4,-1 11,-3 15,2" />
+        <polyline points="4,1 11,3 15,8" />
+        <polyline points="3,3 9,9 12,14" />
+      </g>
+
+      {/* Corps robotique noir */}
       {/* Thorax */}
-      <rect x="-3.5" y="-3.5" width="7" height="7" rx="1.5" fill={fill} stroke={stroke} strokeWidth={1.6} />
+      <rect x="-3.5" y="-3.5" width="7" height="7" rx="1.5" fill={detail} stroke="none" />
       {/* Abdomen */}
-      <polygon points="-3.5,3.5 3.5,3.5 2,9.5 -2,9.5" fill={fill} stroke={stroke} strokeWidth={1.6} />
+      <polygon points="-3.5,3.5 3.5,3.5 2,9.5 -2,9.5" fill={detail} stroke="none" />
       {/* Tête */}
-      <circle cx="0" cy="-5" r="2.2" fill={stroke} stroke="none" />
+      <circle cx="0" cy="-5" r="2.2" fill={detail} stroke="none" />
       {/* Fente laser scan rouge */}
       <line x1="-1.5" y1="-5" x2="1.5" y2="-5" stroke="var(--color-neon-red)" strokeWidth={0.9} />
     </g>
@@ -392,34 +401,17 @@ export function SpiderGlyph() {
 }
 
 /**
- * Rendu du Hacker ennemi sous forme d'hexagone cybernétique magenta avec un masque à visière.
+ * Rendu du Hacker ennemi sous forme du masque « Anonymous » magenta.
+ * Le SVG source (viewBox 313.3×295.1) est recentré sur l'origine et mis à
+ * l'échelle pour tenir dans le gabarit ~±15 des autres icônes de la carte.
  */
 export function HackerGlyph() {
-  const stroke = 'var(--color-neon-magenta)';
-  const fill = 'color-mix(in srgb, var(--color-neon-magenta) 18%, transparent)';
+  const fill = 'var(--color-neon-magenta)';
 
   return (
-    <g>
-      {/* Conteneur Hexagonal */}
-      <polygon
-        points="0,-14 12,-7 12,7 0,14 -12,7 -12,-7"
-        fill={fill}
-        stroke={stroke}
-        strokeWidth={2}
-        vectorEffect="non-scaling-stroke"
-      />
-      {/* Masque facial */}
-      <path
-        d="M -6,-3 L -4,-6 H 4 L 6,-3 L 4,4 H -4 Z"
-        fill="var(--color-panel)"
-        stroke={stroke}
-        strokeWidth={1.2}
-        strokeLinejoin="round"
-        strokeLinecap="round"
-      />
-      {/* Visière lumineuse double ligne */}
-      <line x1="-3.5" y1="-1" x2="3.5" y2="-1" stroke={stroke} strokeWidth={1.5} />
-      <line x1="-2" y1="1.5" x2="2" y2="1.5" stroke={stroke} strokeWidth={1} />
+    <g fill={fill} transform="scale(0.095) translate(-156.65 -147.55)">
+      <path d="M241.6,95l-24.5-82.8-81.6,24.9-39.3-24.9-24.5,82.8c-35.7,5.1-58.9,13.3-58.9,22.5,0,15.4,64.4,27.9,143.8,27.9s143.8-12.5,143.8-27.9-23.2-17.5-58.9-22.5Z" />
+      <path d="M156.7,166.5c-49.2,0-83.5-13.3-96.8,0-13.3,13.3-10.5,36.5,0,51.3,8.2,11.6,52.8,16,70.3,11,15.2-4.3,16.1-16.3,26.5-16.3s11.4,12,26.5,16.3c17.6,5,62.2.6,70.3-11,10.5-14.8,13.3-38,0-51.3s-47.6,0-96.8,0ZM132.2,198.3c-1.6,1.5-3,2.8-4.1,4-2.8,2.9-3.2,3.1-4.5,3.5-1.8.5-6.2,1.1-12.7,1.1-13.3,0-24.9-2.3-30.8-4.2-1.4-.4-2.5-1.4-3.1-2.7-1.6-3.5-2.4-7.3-2.3-10.5,0-2.8,2.4-5,5.1-5h0c10.9,0,28,3,49.2,4.7,4.6.4,6.5,6.1,3.1,9.1ZM236.3,200c-.6,1.3-1.7,2.3-3.1,2.7-5.9,1.9-17.6,4.2-30.8,4.2s0,0,0,0c-6.5,0-10.9-.6-12.7-1.1-1.3-.4-1.7-.6-4.5-3.5-1.1-1.2-2.5-2.5-4.1-4-3.4-3.1-1.5-8.8,3.1-9.1,21.2-1.7,38.4-4.7,49.2-4.7h0c2.8,0,5.1,2.2,5.1,5,0,3.2-.8,7-2.3,10.5Z" />
     </g>
   );
 }
