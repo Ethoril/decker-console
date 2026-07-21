@@ -9,6 +9,7 @@ import type {
   MatrixIcon,
   MiniGameState,
   NetworkNode,
+  NetworkPreset,
   RollRecord,
   SessionMeta,
 } from '../types';
@@ -28,6 +29,7 @@ interface NetworkStore {
   lastAttackHydrated: boolean;
   minigame: MiniGameState | null;
   log: Record<string, LogEntry>;
+  library: Record<string, NetworkPreset>;
   reset: () => void;
 }
 
@@ -44,6 +46,7 @@ const empty = {
   lastAttackHydrated: false,
   minigame: null,
   log: {},
+  library: {},
 };
 
 export const useNetworkStore = create<NetworkStore>((set) => ({

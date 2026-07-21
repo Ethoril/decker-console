@@ -6,6 +6,7 @@ import { DieuDial, MonitorBoxes } from '../components/decker/Monitors';
 import { RollModal, type RollRequest } from '../components/decker/RollModal';
 import { PresenceDot, SideColumn, useIsShort } from '../components/ui';
 import { SoundToggle } from '../components/SoundToggle';
+import { playSound } from '../audio/sound';
 import { PERSONA } from '../data/persona';
 import { MARK_RIGHTS } from '../data/security';
 import {
@@ -148,6 +149,24 @@ export default function DeckerView() {
       return () => clearTimeout(timer);
     }
   }, [activeAlert]);
+
+  // Alerte de changement de réseau (le MJ a diffusé une nouvelle carte)
+  const prevNetworkLoadedAt = useRef<number | null>(null);
+  const [networkSwap, setNetworkSwap] = useState(false);
+  useEffect(() => {
+    const loadedAt = decker.networkLoadedAt ?? null;
+    if (prevNetworkLoadedAt.current === null) {
+      prevNetworkLoadedAt.current = loadedAt; // armement au montage, pas d'alerte
+      return;
+    }
+    if (loadedAt === prevNetworkLoadedAt.current) return;
+    prevNetworkLoadedAt.current = loadedAt;
+    if (loadedAt === null) return;
+    setNetworkSwap(true);
+    void playSound('message');
+    const t = setTimeout(() => setNetworkSwap(false), 2000);
+    return () => clearTimeout(t);
+  }, [decker.networkLoadedAt]);
 
   // Popup quand le decker est attaqué. Piloté par le canal structuré
   // `lastAttack` (écrit par game/threat.ts à la source) : plus de parsing du
@@ -1104,6 +1123,17 @@ export default function DeckerView() {
                 Se déplacer
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Overlay de chargement lors d'un changement de carte */}
+      {networkSwap && (
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-abyss/85">
+          <div className="pulse-alert border border-neon-cyan bg-panel px-6 py-4 text-center text-sm font-bold uppercase tracking-wider text-neon-cyan shadow-[0_0_20px_rgba(0,229,255,0.25)]">
+            Connexion à un nouveau sous-réseau…
+            <br />
+            Chargement de la topologie…
           </div>
         </div>
       )}

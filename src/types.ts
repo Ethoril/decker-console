@@ -69,6 +69,7 @@ export interface DeckerState {
   rebootCountdown?: number; // > 0 = deck inactif
   trapped?: boolean; // Pot de colle actif → déconnexion interdite
   convergence?: boolean; // séquence DIEU en cours (plein écran rouge joueur)
+  networkLoadedAt?: number; // horodatage de la dernière diffusion d'une carte (déclenche l'alerte joueur)
 }
 
 /** Sous-arbre environment/ — malus d'environnement + buff système (CDC §2). */
@@ -222,6 +223,19 @@ export interface AttackEvent {
   detail?: string; // complément court, ex. « 3 vs 1 » (succès attaque vs défense)
 }
 
+/** Une carte sauvegardée dans la bibliothèque persistante (sessions/{code}/library). */
+export interface NetworkPreset {
+  id: string;
+  name: string;
+  createdAt: number;
+  network: {
+    nodes: Record<string, NetworkNode> | null;
+    links: Record<string, Link> | null;
+  };
+  icons: Record<string, MatrixIcon> | null;
+  deckerNodeId: string | null; // nœud de départ du joueur dans cette carte
+}
+
 /** Forme du fichier d'export/import JSON du réseau (vue MJ). */
 export interface NetworkExport {
   network: {
@@ -230,4 +244,5 @@ export interface NetworkExport {
   };
   icons: Record<string, MatrixIcon> | null;
   decker?: DeckerState | null;
+  library?: Record<string, NetworkPreset> | null; // export/import global de la bibliothèque
 }

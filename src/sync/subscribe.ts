@@ -28,7 +28,7 @@ export function subscribeToSession(code: string, role: Role): () => void {
       links: network.links ?? {},
     });
   });
-  sub('icons', (v) => useNetworkStore.setState({ icons: migrateIcons(v as any) ?? {} }));
+  sub('icons', (v) => useNetworkStore.setState({ icons: migrateIcons(v as Record<string, unknown>) ?? {} }));
   sub('decker', (v) => useNetworkStore.setState({ decker: (v as never) ?? {} }));
   sub('environment', (v) => useNetworkStore.setState({ environment: (v as never) ?? {} }));
   sub('countdowns', (v) => useNetworkStore.setState({ countdowns: (v as never) ?? {} }));
@@ -43,6 +43,7 @@ export function subscribeToSession(code: string, role: Role): () => void {
   );
   sub('minigame', (v) => useNetworkStore.setState({ minigame: (v as never) ?? null }));
   sub('log', (v) => useNetworkStore.setState({ log: (v as never) ?? {} }));
+  sub('library', (v) => useNetworkStore.setState({ library: (v as never) ?? {} }));
 
   // Présence : posée à chaque (re)connexion au serveur RTDB.
   const presenceRef = ref(

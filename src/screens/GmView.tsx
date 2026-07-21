@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import NetworkMap, { type MapSelection } from '../components/map/NetworkMap';
 import { ExportImportModal } from '../components/gm/ExportImportModal';
+import { LibraryModal } from '../components/gm/LibraryModal';
 import { MinigameSandboxModal } from '../components/gm/MinigameSandboxModal';
 import { GamePanel } from '../components/gm/GamePanel';
 import { IconPanel } from '../components/gm/IconPanel';
@@ -43,6 +44,7 @@ export default function GmView() {
   const [pendingLink, setPendingLink] = useState<string | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
   const [sandboxOpen, setSandboxOpen] = useState(false);
+  const [libraryOpen, setLibraryOpen] = useState(false);
 
   const switchMode = (m: Mode) => {
     setMode(m);
@@ -185,6 +187,9 @@ export default function GmView() {
               <button className="btn w-full text-left text-xs" onClick={() => setExportOpen(true)}>
                 ⇩⇧ Export / Import
               </button>
+              <button className="btn w-full text-left text-xs" onClick={() => setLibraryOpen(true)}>
+                📁 Mes cartes
+              </button>
               <button
                 className="btn w-full text-left text-xs"
                 onClick={() => setSandboxOpen(true)}
@@ -273,6 +278,7 @@ export default function GmView() {
       </div>
 
       {exportOpen && <ExportImportModal code={code} onClose={() => setExportOpen(false)} />}
+      {libraryOpen && <LibraryModal code={code} onClose={() => setLibraryOpen(false)} />}
       {sandboxOpen && <MinigameSandboxModal onClose={() => setSandboxOpen(false)} />}
     </div>
   );
