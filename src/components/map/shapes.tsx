@@ -201,3 +201,225 @@ export const NODE_TYPE_LABELS: Record<NodeType, string> = {
   archive: 'Archive',
   core: 'Cœur',
 };
+
+/**
+ * Rendu d'une GLACE sous forme de losange avec son glyphe intérieur thématique.
+ * Si non révélée en mode Decker (fog), affiche un point d'interrogation anonyme.
+ */
+export function IceGlyph({
+  iceType,
+  revealed,
+  fog,
+}: {
+  iceType: IceType | null | undefined;
+  revealed: boolean;
+  fog: boolean;
+}) {
+  const showType = !fog || revealed;
+  const stroke = 'var(--color-neon-red)';
+  const fill = 'color-mix(in srgb, var(--color-neon-red) 14%, transparent)';
+
+  if (!showType || !iceType) {
+    // Rendu anonyme (losange rouge + point d'interrogation)
+    return (
+      <g>
+        <polygon
+          points="0,-16 16,0 0,16 -16,0"
+          fill={fill}
+          stroke={stroke}
+          strokeWidth={2}
+          vectorEffect="non-scaling-stroke"
+        />
+        <text
+          y="3.5"
+          textAnchor="middle"
+          fontSize="11"
+          fontWeight="bold"
+          fill={stroke}
+          style={{ fontFamily: 'var(--font-term)' }}
+        >
+          ?
+        </text>
+      </g>
+    );
+  }
+
+  // Rendu de la GLACE identifiée avec son glyphe thématique
+  let glyphContent = null;
+
+  switch (iceType) {
+    case 'acide':
+      glyphContent = (
+        <g stroke={stroke} strokeWidth={1.5} fill="none" strokeLinecap="round">
+          {/* Trois gouttes de corrosion vers le bas */}
+          <line x1="-5" y1="-3" x2="-5" y2="3" />
+          <circle cx="-5" cy="5.5" r="1.1" fill={stroke} stroke="none" />
+          <line x1="0" y1="-5" x2="0" y2="5" />
+          <circle cx="0" cy="7.5" r="1.1" fill={stroke} stroke="none" />
+          <line x1="5" y1="-3" x2="5" y2="3" />
+          <circle cx="5" cy="5.5" r="1.1" fill={stroke} stroke="none" />
+        </g>
+      );
+      break;
+    case 'bloqueuse':
+      glyphContent = (
+        <g stroke={stroke} strokeWidth={1.5} fill="none" strokeLinejoin="round" strokeLinecap="round">
+          {/* Cadenas fermé */}
+          <path d="M -4,-1 V -5 A 4 4 0 0 1 4,-5 V -1" />
+          <rect x="-6" y="-1" width="12" height="8" rx="1.2" fill={fill} />
+          <circle cx="0" cy="3" r="1" fill={stroke} stroke="none" />
+        </g>
+      );
+      break;
+    case 'brouilleuse':
+      glyphContent = (
+        <g stroke={stroke} strokeWidth={1.5} fill="none" strokeLinecap="round">
+          {/* Antenne et ondes de brouillage */}
+          <circle cx="0" cy="4.5" r="1.5" fill={stroke} stroke="none" />
+          <line x1="0" y1="4.5" x2="0" y2="-5.5" />
+          <path d="M -4,-2.5 A 5 5 0 0 1 4,-2.5" />
+          <path d="M -7,-5.5 A 9 9 0 0 1 7,-5.5" />
+        </g>
+      );
+      break;
+    case 'crash':
+      glyphContent = (
+        <g stroke={stroke} strokeWidth={1.8} fill="none" strokeLinejoin="miter" strokeLinecap="round">
+          {/* Éclair */}
+          <path d="M 2.5,-7 L -3,0 H 2 L -2.5,7" />
+        </g>
+      );
+      break;
+    case 'noire':
+      glyphContent = (
+        <g>
+          {/* Crâne plein (silhouette néon) : la GLACE la plus létale se
+              démarque en solide au milieu des autres glyphes en fil de fer. */}
+          <path
+            d="M 0,-8 C 5,-8 7,-4.5 7,-1 C 7,1.5 6,3 4.5,4 L 4.5,5.5 C 4.5,6.3 3.8,6.5 3,6.5 L -3,6.5 C -3.8,6.5 -4.5,6.3 -4.5,5.5 L -4.5,4 C -6,3 -7,1.5 -7,-1 C -7,-4.5 -5,-8 0,-8 Z"
+            fill={stroke}
+            stroke="none"
+          />
+          {/* Orbites creuses */}
+          <circle cx="-3" cy="-1.5" r="2" fill="var(--color-abyss)" stroke="none" />
+          <circle cx="3" cy="-1.5" r="2" fill="var(--color-abyss)" stroke="none" />
+          {/* Cavité nasale */}
+          <path d="M 0,0.8 L -1.2,3 L 1.2,3 Z" fill="var(--color-abyss)" stroke="none" />
+          {/* Dents (fentes sombres dans la mâchoire) */}
+          <g stroke="var(--color-abyss)" strokeWidth={0.9}>
+            <line x1="-1.5" y1="4.2" x2="-1.5" y2="6.5" />
+            <line x1="0" y1="4.2" x2="0" y2="6.5" />
+            <line x1="1.5" y1="4.2" x2="1.5" y2="6.5" />
+          </g>
+        </g>
+      );
+      break;
+    case 'potDeColle':
+      glyphContent = (
+        <g stroke={stroke} strokeWidth={1.2} fill="none">
+          {/* Toile d'araignée/colle */}
+          <line x1="-7" y1="-7" x2="7" y2="7" />
+          <line x1="-7" y1="7" x2="7" y2="-7" />
+          <line x1="-9" y1="0" x2="9" y2="0" />
+          <line x1="0" y1="-9" x2="0" y2="9" />
+          <circle cx="0" cy="0" r="3.5" />
+          <circle cx="0" cy="0" r="7" />
+        </g>
+      );
+      break;
+    case 'tueuse':
+      glyphContent = (
+        <g stroke={stroke} strokeWidth={1.5} fill="none">
+          {/* Réticule de visée / Tueuse */}
+          <circle cx="0" cy="0" r="6.2" />
+          <line x1="-9.5" y1="0" x2="-4.2" y2="0" />
+          <line x1="4.2" y1="0" x2="9.5" y2="0" />
+          <line x1="0" y1="-9.5" x2="0" y2="-4.2" />
+          <line x1="0" y1="4.2" x2="0" y2="9.5" />
+          <circle cx="0" cy="0" r="1.5" fill={stroke} stroke="none" />
+        </g>
+      );
+      break;
+  }
+
+  return (
+    <g>
+      {/* Conteneur principal (losange rouge agrandi) */}
+      <polygon
+        points="0,-16 16,0 0,16 -16,0"
+        fill={fill}
+        stroke={stroke}
+        strokeWidth={2}
+        vectorEffect="non-scaling-stroke"
+      />
+      {glyphContent}
+    </g>
+  );
+}
+
+/**
+ * Rendu du Spider de sécurité avec pattes articulées mécaniques et fente laser rouge.
+ */
+export function SpiderGlyph() {
+  const stroke = 'var(--color-neon-amber)';
+  const fill = 'var(--color-panel)';
+
+  return (
+    <g stroke={stroke} strokeWidth={1.6} vectorEffect="non-scaling-stroke">
+      {/* Pattes articulées (polylignes) */}
+      {/* Gauche */}
+      <polyline points="-3,-3 -9,-9 -13,-4" fill="none" />
+      <polyline points="-4,-1 -11,-3 -15,2" fill="none" />
+      <polyline points="-4,1 -11,3 -15,8" fill="none" />
+      <polyline points="-3,3 -9,9 -12,14" fill="none" />
+      {/* Droite */}
+      <polyline points="3,-3 9,-9 13,-4" fill="none" />
+      <polyline points="4,-1 11,-3 15,2" fill="none" />
+      <polyline points="4,1 11,3 15,8" fill="none" />
+      <polyline points="3,3 9,9 12,14" fill="none" />
+
+      {/* Corps robotique */}
+      {/* Thorax */}
+      <rect x="-3.5" y="-3.5" width="7" height="7" rx="1.5" fill={fill} stroke={stroke} strokeWidth={1.6} />
+      {/* Abdomen */}
+      <polygon points="-3.5,3.5 3.5,3.5 2,9.5 -2,9.5" fill={fill} stroke={stroke} strokeWidth={1.6} />
+      {/* Tête */}
+      <circle cx="0" cy="-5" r="2.2" fill={stroke} stroke="none" />
+      {/* Fente laser scan rouge */}
+      <line x1="-1.5" y1="-5" x2="1.5" y2="-5" stroke="var(--color-neon-red)" strokeWidth={0.9} />
+    </g>
+  );
+}
+
+/**
+ * Rendu du Hacker ennemi sous forme d'hexagone cybernétique magenta avec un masque à visière.
+ */
+export function HackerGlyph() {
+  const stroke = 'var(--color-neon-magenta)';
+  const fill = 'color-mix(in srgb, var(--color-neon-magenta) 18%, transparent)';
+
+  return (
+    <g>
+      {/* Conteneur Hexagonal */}
+      <polygon
+        points="0,-14 12,-7 12,7 0,14 -12,7 -12,-7"
+        fill={fill}
+        stroke={stroke}
+        strokeWidth={2}
+        vectorEffect="non-scaling-stroke"
+      />
+      {/* Masque facial */}
+      <path
+        d="M -6,-3 L -4,-6 H 4 L 6,-3 L 4,4 H -4 Z"
+        fill="var(--color-panel)"
+        stroke={stroke}
+        strokeWidth={1.2}
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+      {/* Visière lumineuse double ligne */}
+      <line x1="-3.5" y1="-1" x2="3.5" y2="-1" stroke={stroke} strokeWidth={1.5} />
+      <line x1="-2" y1="1.5" x2="2" y2="1.5" stroke={stroke} strokeWidth={1} />
+    </g>
+  );
+}

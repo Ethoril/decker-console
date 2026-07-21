@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { Link, MatrixIcon, NetworkNode } from '../../types';
-import { ICE_SHORT, NodeGlyph, nodeColors } from './shapes';
+import { ICE_SHORT, NodeGlyph, nodeColors, IceGlyph, SpiderGlyph, HackerGlyph } from './shapes';
 
 export interface MapSelection {
   kind: 'node' | 'icon';
@@ -538,24 +538,38 @@ export default function NetworkMap({
           >
             {/* Réticule extérieur rotatif */}
             <circle
-              r="13"
+              r="17"
               fill="none"
-              stroke="var(--color-neon-cyan)"
+              stroke="var(--color-neon-green)"
               strokeWidth={1}
-              strokeDasharray="3 3"
+              strokeDasharray="4 4"
               className="animate-spin"
               style={{ animationDuration: '8s' }}
             />
             {/* Viseurs orthogonaux */}
-            <line x1="-16" y1="0" x2="-9" y2="0" stroke="var(--color-neon-cyan)" strokeWidth={1.5} />
-            <line x1="9" y1="0" x2="16" y2="0" stroke="var(--color-neon-cyan)" strokeWidth={1.5} />
-            <line x1="0" y1="-16" x2="0" y2="-9" stroke="var(--color-neon-cyan)" strokeWidth={1.5} />
-            <line x1="0" y1="9" x2="0" y2="16" stroke="var(--color-neon-cyan)" strokeWidth={1.5} />
+            <line x1="-21" y1="0" x2="-12" y2="0" stroke="var(--color-neon-green)" strokeWidth={1.5} />
+            <line x1="12" y1="0" x2="21" y2="0" stroke="var(--color-neon-green)" strokeWidth={1.5} />
+            <line x1="0" y1="-21" x2="0" y2="-12" stroke="var(--color-neon-green)" strokeWidth={1.5} />
+            <line x1="0" y1="12" x2="0" y2="21" stroke="var(--color-neon-green)" strokeWidth={1.5} />
             {/* Silhouette du decker (hacker à capuche) */}
             <path
-              d="M -8,6 C -8,2.5 -5,1.5 -4,-1 C -4,-5.5 -2.5,-7.5 0,-7.5 C 2.5,-7.5 4,-5.5 4,-1 C 5,1.5 8,2.5 8,6 Z"
-              fill="var(--color-neon-cyan)"
+              d="M -11,9 L -8,4 C -8,1 -6,-3 -5,-5 C -5,-9 -3,-11 0,-11 C 3,-11 5,-9 5,-5 C 6,-3 8,1 8,4 L 11,9 Z"
+              fill="var(--color-neon-green)"
               className="pulse-slow"
+            />
+            {/* Fente faciale sombre */}
+            <path
+              d="M -4.5,3 C -4.5,-1 -2.5,-3 0,-3 C 2.5,-3 4.5,-1 4.5,3 Z"
+              fill="var(--color-abyss)"
+            />
+            {/* Visière lumineuse cyan */}
+            <line
+              x1="-3.5"
+              y1="0.5"
+              x2="3.5"
+              y2="0.5"
+              stroke="var(--color-neon-cyan)"
+              strokeWidth={1.5}
             />
           </g>
         )}
@@ -565,27 +579,22 @@ export default function NetworkMap({
 }
 
 function IconGlyph({ icon, fog }: { icon: MatrixIcon; fog: boolean }) {
-  const showType = icon.iceType;
+  const showType = !fog || icon.revealed;
   switch (icon.kind) {
     case 'ice':
       return (
         <g>
-          <polygon
-            points="0,-14 14,0 0,14 -14,0"
-            fill="color-mix(in srgb, var(--color-neon-red) 14%, transparent)"
-            stroke="var(--color-neon-red)"
-            strokeWidth={2}
-            vectorEffect="non-scaling-stroke"
-          />
-          {showType && (
+          <IceGlyph iceType={icon.iceType} revealed={icon.revealed} fog={fog} />
+          {showType && icon.iceType && (
             <text
-              y="3.5"
+              y="24"
               textAnchor="middle"
-              fontSize="9"
+              fontSize="8.5"
+              fontWeight="bold"
               fill="var(--color-neon-red)"
               style={{ fontFamily: 'var(--font-term)' }}
             >
-              {ICE_SHORT[icon.iceType!]}
+              {ICE_SHORT[icon.iceType]}
             </text>
           )}
           {!fog && (
@@ -595,41 +604,40 @@ function IconGlyph({ icon, fog }: { icon: MatrixIcon; fog: boolean }) {
       );
     case 'spider':
       return (
-        <g stroke="var(--color-neon-amber)" strokeWidth={1.6} vectorEffect="non-scaling-stroke">
-          {[-50, -25, 25, 50].map((deg) => {
-            const a = (deg * Math.PI) / 180;
-            const x = Math.sin(a) * 13;
-            const y = -Math.cos(a) * 10;
-            return (
-              <g key={deg}>
-                <line x1={0} y1={-2} x2={x} y2={y - 2} fill="none" />
-                <line x1={0} y1={2} x2={x} y2={-y + 2} fill="none" />
-              </g>
-            );
-          })}
-          <circle r="5.5" fill="var(--color-panel)" />
-          <circle r="2.2" fill="var(--color-neon-amber)" stroke="none" />
+        <g>
+          <SpiderGlyph />
+          <text
+            y="24"
+            textAnchor="middle"
+            fontSize="8.5"
+            fontWeight="bold"
+            fill="var(--color-neon-amber)"
+            style={{ fontFamily: 'var(--font-term)' }}
+          >
+            SP
+          </text>
+          {!fog && (
+            <title>{icon.label}</title>
+          )}
         </g>
       );
     case 'enemyHacker':
       return (
         <g>
-          <circle
-            r="10"
-            fill="color-mix(in srgb, var(--color-neon-magenta) 18%, transparent)"
-            stroke="var(--color-neon-magenta)"
-            strokeWidth={2}
-            vectorEffect="non-scaling-stroke"
-          />
+          <HackerGlyph />
           <text
-            y="3.5"
+            y="24"
             textAnchor="middle"
-            fontSize="10"
+            fontSize="8.5"
+            fontWeight="bold"
             fill="var(--color-neon-magenta)"
             style={{ fontFamily: 'var(--font-term)' }}
           >
-            H
+            HCK
           </text>
+          {!fog && (
+            <title>{icon.label}</title>
+          )}
         </g>
       );
   }
