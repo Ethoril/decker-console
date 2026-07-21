@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import NetworkMap, { type MapSelection } from '../components/map/NetworkMap';
 import { ExportImportModal } from '../components/gm/ExportImportModal';
+import { MinigameSandboxModal } from '../components/gm/MinigameSandboxModal';
 import { GamePanel } from '../components/gm/GamePanel';
 import { IconPanel } from '../components/gm/IconPanel';
 import { NodePanel } from '../components/gm/NodePanel';
@@ -41,6 +42,7 @@ export default function GmView() {
   const [selection, setSelection] = useState<MapSelection | null>(null);
   const [pendingLink, setPendingLink] = useState<string | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
+  const [sandboxOpen, setSandboxOpen] = useState(false);
 
   const switchMode = (m: Mode) => {
     setMode(m);
@@ -183,6 +185,12 @@ export default function GmView() {
               <button className="btn w-full text-left text-xs" onClick={() => setExportOpen(true)}>
                 ⇩⇧ Export / Import
               </button>
+              <button
+                className="btn w-full text-left text-xs"
+                onClick={() => setSandboxOpen(true)}
+              >
+                🎮 Bac à sable Mini-jeux
+              </button>
               <button className="btn w-full text-left text-xs" onClick={() => copyLink('decker')}>
                 ⎘ Copier lien Decker
               </button>
@@ -265,6 +273,7 @@ export default function GmView() {
       </div>
 
       {exportOpen && <ExportImportModal code={code} onClose={() => setExportOpen(false)} />}
+      {sandboxOpen && <MinigameSandboxModal onClose={() => setSandboxOpen(false)} />}
     </div>
   );
 }
