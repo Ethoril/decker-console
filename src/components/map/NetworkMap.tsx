@@ -14,6 +14,8 @@ interface NetworkMapProps {
   deckerNodeId: string | null;
   /** Rendu côté decker : silhouettes pour les nœuds `spotted`. */
   fog?: boolean;
+  /** Affiche le réticule de visée autour du persona (une alerte est active). */
+  alerted?: boolean;
   selection: MapSelection | null;
   nodesDraggable?: boolean;
   iconsDraggable?: boolean;
@@ -68,6 +70,7 @@ export default function NetworkMap({
   icons,
   deckerNodeId,
   fog = false,
+  alerted = false,
   selection,
   nodesDraggable = false,
   iconsDraggable = false,
@@ -536,21 +539,26 @@ export default function NetworkMap({
             filter="url(#neon-glow)"
             pointerEvents="none"
           >
-            {/* Réticule extérieur rotatif */}
-            <circle
-              r="17"
-              fill="none"
-              stroke="var(--color-neon-green)"
-              strokeWidth={1}
-              strokeDasharray="4 4"
-              className="animate-spin"
-              style={{ animationDuration: '8s' }}
-            />
-            {/* Viseurs orthogonaux */}
-            <line x1="-21" y1="0" x2="-12" y2="0" stroke="var(--color-neon-green)" strokeWidth={1.5} />
-            <line x1="12" y1="0" x2="21" y2="0" stroke="var(--color-neon-green)" strokeWidth={1.5} />
-            <line x1="0" y1="-21" x2="0" y2="-12" stroke="var(--color-neon-green)" strokeWidth={1.5} />
-            <line x1="0" y1="12" x2="0" y2="21" stroke="var(--color-neon-green)" strokeWidth={1.5} />
+            {/* Réticule de visée : n'apparaît qu'une fois une alerte déclenchée. */}
+            {alerted && (
+              <>
+                {/* Réticule extérieur rotatif */}
+                <circle
+                  r="17"
+                  fill="none"
+                  stroke="var(--color-neon-green)"
+                  strokeWidth={1}
+                  strokeDasharray="4 4"
+                  className="animate-spin"
+                  style={{ animationDuration: '8s' }}
+                />
+                {/* Viseurs orthogonaux */}
+                <line x1="-21" y1="0" x2="-12" y2="0" stroke="var(--color-neon-green)" strokeWidth={1.5} />
+                <line x1="12" y1="0" x2="21" y2="0" stroke="var(--color-neon-green)" strokeWidth={1.5} />
+                <line x1="0" y1="-21" x2="0" y2="-12" stroke="var(--color-neon-green)" strokeWidth={1.5} />
+                <line x1="0" y1="12" x2="0" y2="21" stroke="var(--color-neon-green)" strokeWidth={1.5} />
+              </>
+            )}
             {/* Silhouette du decker : masque « Anonymous » (SVG recentré et mis à
                 l'échelle pour tenir dans le réticule). */}
             <g

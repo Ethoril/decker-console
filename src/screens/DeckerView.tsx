@@ -141,6 +141,9 @@ export default function DeckerView() {
     prevAlertedNodes.current = new Set(alertedIds);
   }, [nodes]);
 
+  // Réticule de visée du persona : actif dès qu'un nœud du réseau est en alerte.
+  const networkAlerted = Object.values(nodes).some((node) => node.state === 'alerted');
+
   // Ferme l'alerte de nœud après 4 secondes
   useEffect(() => {
     if (activeAlert) {
@@ -511,6 +514,7 @@ export default function DeckerView() {
             icons={visibleIcons}
             deckerNodeId={deckerNodeId}
             fog
+            alerted={networkAlerted}
             selection={selection}
             onNodeTap={(id) => {
               setSelection({ kind: 'node', id });
