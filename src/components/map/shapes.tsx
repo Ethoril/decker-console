@@ -401,17 +401,34 @@ export function SpiderGlyph() {
 }
 
 /**
- * Rendu du Hacker ennemi sous forme du masque « Anonymous » magenta.
- * Le SVG source (viewBox 313.3×295.1) est recentré sur l'origine et mis à
- * l'échelle pour tenir dans le gabarit ~±15 des autres icônes de la carte.
+ * Rendu du Hacker ennemi sous forme d'hexagone cybernétique magenta avec un masque à visière.
  */
 export function HackerGlyph() {
-  const fill = 'var(--color-neon-magenta)';
+  const stroke = 'var(--color-neon-magenta)';
+  const fill = 'color-mix(in srgb, var(--color-neon-magenta) 18%, transparent)';
 
   return (
-    <g fill={fill} transform="scale(0.095) translate(-156.65 -147.55)">
-      <path d="M241.6,95l-24.5-82.8-81.6,24.9-39.3-24.9-24.5,82.8c-35.7,5.1-58.9,13.3-58.9,22.5,0,15.4,64.4,27.9,143.8,27.9s143.8-12.5,143.8-27.9-23.2-17.5-58.9-22.5Z" />
-      <path d="M156.7,166.5c-49.2,0-83.5-13.3-96.8,0-13.3,13.3-10.5,36.5,0,51.3,8.2,11.6,52.8,16,70.3,11,15.2-4.3,16.1-16.3,26.5-16.3s11.4,12,26.5,16.3c17.6,5,62.2.6,70.3-11,10.5-14.8,13.3-38,0-51.3s-47.6,0-96.8,0ZM132.2,198.3c-1.6,1.5-3,2.8-4.1,4-2.8,2.9-3.2,3.1-4.5,3.5-1.8.5-6.2,1.1-12.7,1.1-13.3,0-24.9-2.3-30.8-4.2-1.4-.4-2.5-1.4-3.1-2.7-1.6-3.5-2.4-7.3-2.3-10.5,0-2.8,2.4-5,5.1-5h0c10.9,0,28,3,49.2,4.7,4.6.4,6.5,6.1,3.1,9.1ZM236.3,200c-.6,1.3-1.7,2.3-3.1,2.7-5.9,1.9-17.6,4.2-30.8,4.2s0,0,0,0c-6.5,0-10.9-.6-12.7-1.1-1.3-.4-1.7-.6-4.5-3.5-1.1-1.2-2.5-2.5-4.1-4-3.4-3.1-1.5-8.8,3.1-9.1,21.2-1.7,38.4-4.7,49.2-4.7h0c2.8,0,5.1,2.2,5.1,5,0,3.2-.8,7-2.3,10.5Z" />
+    <g>
+      {/* Conteneur Hexagonal */}
+      <polygon
+        points="0,-14 12,-7 12,7 0,14 -12,7 -12,-7"
+        fill={fill}
+        stroke={stroke}
+        strokeWidth={2}
+        vectorEffect="non-scaling-stroke"
+      />
+      {/* Masque facial */}
+      <path
+        d="M -6,-3 L -4,-6 H 4 L 6,-3 L 4,4 H -4 Z"
+        fill="var(--color-panel)"
+        stroke={stroke}
+        strokeWidth={1.2}
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+      {/* Visière lumineuse double ligne */}
+      <line x1="-3.5" y1="-1" x2="3.5" y2="-1" stroke={stroke} strokeWidth={1.5} />
+      <line x1="-2" y1="1.5" x2="2" y2="1.5" stroke={stroke} strokeWidth={1} />
     </g>
   );
 }
