@@ -6,6 +6,7 @@ import { DieuDial, MonitorBoxes } from '../components/decker/Monitors';
 import { RollModal, type RollRequest } from '../components/decker/RollModal';
 import { PresenceDot, SideColumn, useIsShort } from '../components/ui';
 import { SoundToggle } from '../components/SoundToggle';
+import { FullscreenToggle } from '../components/FullscreenToggle';
 import { playSound } from '../audio/sound';
 import { PERSONA } from '../data/persona';
 import { MARK_RIGHTS } from '../data/security';
@@ -394,6 +395,7 @@ export default function DeckerView() {
           Se déconnecter
         </button>
         <SoundToggle />
+        <FullscreenToggle />
       </header>
 
       {/* Bandeau deck détruit */}
