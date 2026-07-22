@@ -114,9 +114,9 @@ export type MiniGameKind =
   | 'overload'
   | 'decryption'
   | 'extraction'
-  | 'signal'
   | 'sequence'
-  | 'siphon';
+  | 'ringlock'
+  | 'glyph';
 export type MiniGameStatus = 'active' | 'success' | 'failure';
 
 export interface InjectionParams {
@@ -141,13 +141,6 @@ export interface ExtractionParams {
   timeLimit: number;
 }
 
-export interface SignalParams {
-  tolerance: number;
-  holdTime: number;
-  timeLimit: number;
-  sliderCount: 2 | 3;
-}
-
 export interface SequenceParams {
   gridSize: 3 | 4;
   sequenceLength: number;
@@ -155,10 +148,14 @@ export interface SequenceParams {
   maxErrors: number;
 }
 
-export interface SiphonParams {
-  columns: 3 | 4;
-  requiredData: number;
-  fallSpeed: number;
+export interface RingLockParams {
+  ringCount: 2 | 3 | 4;
+  tolerance: number; // degrees e.g. 15
+  timeLimit: number;
+}
+
+export interface GlyphParams {
+  gridSize: 2 | 3 | 4;
   timeLimit: number;
 }
 
@@ -167,9 +164,9 @@ export type MiniGameParams =
   | OverloadParams
   | DecryptionParams
   | ExtractionParams
-  | SignalParams
   | SequenceParams
-  | SiphonParams;
+  | RingLockParams
+  | GlyphParams;
 
 export interface MiniGameProgress {
   label: string;
