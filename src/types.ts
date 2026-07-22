@@ -114,9 +114,7 @@ export type MiniGameKind =
   | 'overload'
   | 'decryption'
   | 'extraction'
-  | 'sequence'
-  | 'ringlock'
-  | 'glyph';
+  | 'sequence';
 export type MiniGameStatus = 'active' | 'success' | 'failure';
 
 export interface InjectionParams {
@@ -148,25 +146,12 @@ export interface SequenceParams {
   maxErrors: number;
 }
 
-export interface RingLockParams {
-  ringCount: 2 | 3 | 4;
-  tolerance: number; // degrees e.g. 15
-  timeLimit: number;
-}
-
-export interface GlyphParams {
-  gridSize: 2 | 3 | 4;
-  timeLimit: number;
-}
-
 export type MiniGameParams =
   | InjectionParams
   | OverloadParams
   | DecryptionParams
   | ExtractionParams
-  | SequenceParams
-  | RingLockParams
-  | GlyphParams;
+  | SequenceParams;
 
 export interface MiniGameProgress {
   label: string;

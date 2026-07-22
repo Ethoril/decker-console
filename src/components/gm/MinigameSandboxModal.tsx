@@ -7,8 +7,6 @@ import type {
   DecryptionParams,
   ExtractionParams,
   SequenceParams,
-  RingLockParams,
-  GlyphParams,
 } from '../../types';
 import {
   MINI_GAME_LABELS,
@@ -17,16 +15,12 @@ import {
   decryptionParams,
   extractionParams,
   sequenceParams,
-  ringLockParams,
-  glyphParams,
 } from '../../game/minigames';
 import { InjectionGame } from '../../minigames/injection/InjectionGame';
 import { OverloadGame } from '../../minigames/overload/OverloadGame';
 import { DecryptionGame } from '../../minigames/decryption/DecryptionGame';
 import { ExtractionGame } from '../../minigames/extraction/ExtractionGame';
 import { SequenceGame } from '../../minigames/sequence/SequenceGame';
-import { RingLockGame } from '../../minigames/ringlock/RingLockGame';
-import { GlyphGame } from '../../minigames/glyph/GlyphGame';
 
 interface MinigameSandboxModalProps {
   onClose: () => void;
@@ -64,10 +58,6 @@ export function MinigameSandboxModal({ onClose }: MinigameSandboxModalProps) {
         return extractionParams(successes);
       case 'sequence':
         return sequenceParams(successes);
-      case 'ringlock':
-        return ringLockParams(successes);
-      case 'glyph':
-        return glyphParams(successes);
     }
   }, [kind, successes]);
 
@@ -257,38 +247,6 @@ export function MinigameSandboxModal({ onClose }: MinigameSandboxModalProps) {
                   </div>
                 </div>
               )}
-
-              {kind === 'ringlock' && (
-                <div className="grid grid-cols-3 gap-2 text-center text-xs font-mono">
-                  <div className="border border-grid/50 p-2 rounded bg-abyss">
-                    <span className="block text-ink-dim text-[8px] uppercase">Anneaux</span>
-                    <span className="text-neon-cyan font-bold">{(gameParams as RingLockParams).ringCount}</span>
-                  </div>
-                  <div className="border border-grid/50 p-2 rounded bg-abyss">
-                    <span className="block text-ink-dim text-[8px] uppercase">Tolérance</span>
-                    <span className="text-neon-cyan font-bold">±{(gameParams as RingLockParams).tolerance}°</span>
-                  </div>
-                  <div className="border border-grid/50 p-2 rounded bg-abyss">
-                    <span className="block text-ink-dim text-[8px] uppercase">Temps</span>
-                    <span className="text-neon-cyan font-bold">{(gameParams as RingLockParams).timeLimit}s</span>
-                  </div>
-                </div>
-              )}
-
-              {kind === 'glyph' && (
-                <div className="grid grid-cols-2 gap-2 text-center text-xs font-mono">
-                  <div className="border border-grid/50 p-2 rounded bg-abyss">
-                    <span className="block text-ink-dim text-[8px] uppercase">Grille</span>
-                    <span className="text-neon-cyan font-bold">
-                      {(gameParams as GlyphParams).gridSize} × {(gameParams as GlyphParams).gridSize}
-                    </span>
-                  </div>
-                  <div className="border border-grid/50 p-2 rounded bg-abyss">
-                    <span className="block text-ink-dim text-[8px] uppercase">Temps</span>
-                    <span className="text-neon-cyan font-bold">{(gameParams as GlyphParams).timeLimit}s</span>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
 
@@ -383,24 +341,6 @@ export function MinigameSandboxModal({ onClose }: MinigameSandboxModalProps) {
               <SequenceGame
                 key={gameKey}
                 params={gameParams as SequenceParams}
-                onProgress={handleProgress}
-                onResult={handleResult}
-              />
-            )}
-
-            {kind === 'ringlock' && (
-              <RingLockGame
-                key={gameKey}
-                params={gameParams as RingLockParams}
-                onProgress={handleProgress}
-                onResult={handleResult}
-              />
-            )}
-
-            {kind === 'glyph' && (
-              <GlyphGame
-                key={gameKey}
-                params={gameParams as GlyphParams}
                 onProgress={handleProgress}
                 onResult={handleResult}
               />

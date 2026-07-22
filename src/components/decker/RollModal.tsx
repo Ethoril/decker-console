@@ -24,8 +24,6 @@ import type {
   OverloadParams,
   PoolLine,
   RollRecord,
-  RingLockParams,
-  GlyphParams,
   SequenceParams,
 } from '../../types';
 import { InjectionGame } from '../../minigames/injection/InjectionGame';
@@ -34,8 +32,6 @@ import { OverloadGame } from '../../minigames/overload/OverloadGame';
 import { DecryptionGame } from '../../minigames/decryption/DecryptionGame';
 import { ExtractionGame } from '../../minigames/extraction/ExtractionGame';
 import { SequenceGame } from '../../minigames/sequence/SequenceGame';
-import { RingLockGame } from '../../minigames/ringlock/RingLockGame';
-import { GlyphGame } from '../../minigames/glyph/GlyphGame';
 
 export interface RollRequest {
   /** Libellé du test, ex. « Hack (Corruption) — Serveur RH ». */
@@ -237,12 +233,6 @@ export function RollModal({
         break;
       case 'sequence':
         gameView = <SequenceGame params={activeGame.params as SequenceParams} {...common} />;
-        break;
-      case 'ringlock':
-        gameView = <RingLockGame params={activeGame.params as RingLockParams} {...common} />;
-        break;
-      case 'glyph':
-        gameView = <GlyphGame params={activeGame.params as GlyphParams} {...common} />;
         break;
     }
     return (

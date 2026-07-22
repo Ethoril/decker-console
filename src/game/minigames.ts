@@ -4,14 +4,12 @@ import { appendLog, publishMiniGame, updateMiniGame } from '../sync/write';
 import type {
   DecryptionParams,
   ExtractionParams,
-  GlyphParams,
   InjectionParams,
   MiniGameContext,
   MiniGameKind,
   MiniGameParams,
   MiniGameState,
   OverloadParams,
-  RingLockParams,
   SequenceParams,
 } from '../types';
 
@@ -21,13 +19,11 @@ export const MINI_GAME_LABELS: Record<MiniGameKind, string> = {
   decryption: 'Décryptage',
   extraction: 'Extraction d’urgence',
   sequence: 'Matrice de Séquençage',
-  ringlock: 'Alignement de Verrou',
-  glyph: 'Reconstitution de Glyphe',
 };
 
 /** Garde le jeu thématique à 65 %, puis répartit le reste entre les autres variantes. */
 export function pickMiniGameKind(primary: MiniGameKind): MiniGameKind {
-  const allKinds: MiniGameKind[] = ['injection', 'overload', 'decryption', 'extraction', 'sequence', 'ringlock', 'glyph'];
+  const allKinds: MiniGameKind[] = ['injection', 'overload', 'decryption', 'extraction', 'sequence'];
   const variants = allKinds.filter((k) => k !== primary);
   const roll = Math.random();
   if (roll < 0.65) return primary;
@@ -70,20 +66,6 @@ export function sequenceParams(successes: number): SequenceParams {
   return { gridSize: 4, sequenceLength: 7, displaySpeedMs: 300, maxErrors: 0 };
 }
 
-export function ringLockParams(successes: number): RingLockParams {
-  if (successes >= 4) return { ringCount: 2, tolerance: 16, timeLimit: 35 };
-  if (successes >= 2) return { ringCount: 3, tolerance: 14, timeLimit: 30 };
-  if (successes === 1) return { ringCount: 3, tolerance: 11, timeLimit: 25 };
-  return { ringCount: 4, tolerance: 9, timeLimit: 22 };
-}
-
-export function glyphParams(successes: number): GlyphParams {
-  if (successes >= 4) return { gridSize: 2, timeLimit: 35 };
-  if (successes >= 2) return { gridSize: 3, timeLimit: 30 };
-  if (successes === 1) return { gridSize: 3, timeLimit: 22 };
-  return { gridSize: 4, timeLimit: 25 };
-}
-
 function paramsFor(kind: MiniGameKind, successes: number): MiniGameParams {
   switch (kind) {
     case 'injection': return injectionParams(successes);
@@ -91,8 +73,6 @@ function paramsFor(kind: MiniGameKind, successes: number): MiniGameParams {
     case 'decryption': return decryptionParams(successes);
     case 'extraction': return extractionParams(successes);
     case 'sequence': return sequenceParams(successes);
-    case 'ringlock': return ringLockParams(successes);
-    case 'glyph': return glyphParams(successes);
   }
 }
 
@@ -101,9 +81,7 @@ function totalFor(kind: MiniGameKind, params: MiniGameParams): number {
   if (kind === 'overload') return (params as OverloadParams).requiredHits;
   if (kind === 'decryption') return (params as DecryptionParams).gridSize ** 2;
   if (kind === 'extraction') return (params as ExtractionParams).gridSize ** 2;
-  if (kind === 'sequence') return (params as SequenceParams).sequenceLength;
-  if (kind === 'ringlock') return (params as RingLockParams).ringCount;
-  return (params as GlyphParams).gridSize ** 2;
+  return (params as SequenceParams).sequenceLength;
 }
 
 export function createMiniGame(
