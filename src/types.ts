@@ -114,7 +114,8 @@ export type MiniGameKind =
   | 'overload'
   | 'decryption'
   | 'extraction'
-  | 'sequence';
+  | 'sequence'
+  | 'shortcircuit';
 export type MiniGameStatus = 'active' | 'success' | 'failure';
 
 export interface InjectionParams {
@@ -146,12 +147,19 @@ export interface SequenceParams {
   maxErrors: number;
 }
 
+export interface ShortCircuitParams {
+  gridSize: 3 | 4 | 5;
+  scrambleMoves: number;
+  timeLimit: number;
+}
+
 export type MiniGameParams =
   | InjectionParams
   | OverloadParams
   | DecryptionParams
   | ExtractionParams
-  | SequenceParams;
+  | SequenceParams
+  | ShortCircuitParams;
 
 export interface MiniGameProgress {
   label: string;
