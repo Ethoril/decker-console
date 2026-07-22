@@ -57,17 +57,17 @@ export function decryptionParams(successes: number): DecryptionParams {
 }
 
 export function extractionParams(successes: number): ExtractionParams {
-  if (successes >= 4) return { gridSize: 8, timeLimit: 25 };
-  if (successes >= 2) return { gridSize: 10, timeLimit: 21 };
-  if (successes === 1) return { gridSize: 12, timeLimit: 17 };
-  return { gridSize: 14, timeLimit: 12 };
+  if (successes >= 4) return { gridSize: 7, timeLimit: 25 };
+  if (successes >= 2) return { gridSize: 8, timeLimit: 22 };
+  if (successes === 1) return { gridSize: 9, timeLimit: 20 };
+  return { gridSize: 10, timeLimit: 18 };
 }
 
 export function signalParams(successes: number): SignalParams {
-  if (successes >= 4) return { tolerance: 0.12, holdTime: 1.5, timeLimit: 30, sliderCount: 2 };
-  if (successes >= 2) return { tolerance: 0.08, holdTime: 2.0, timeLimit: 25, sliderCount: 3 };
-  if (successes === 1) return { tolerance: 0.05, holdTime: 2.2, timeLimit: 20, sliderCount: 3 };
-  return { tolerance: 0.04, holdTime: 2.5, timeLimit: 18, sliderCount: 3 };
+  if (successes >= 4) return { tolerance: 0.14, holdTime: 1.2, timeLimit: 40, sliderCount: 2 };
+  if (successes >= 2) return { tolerance: 0.12, holdTime: 1.6, timeLimit: 35, sliderCount: 3 };
+  if (successes === 1) return { tolerance: 0.09, holdTime: 1.8, timeLimit: 30, sliderCount: 3 };
+  return { tolerance: 0.07, holdTime: 2.0, timeLimit: 25, sliderCount: 3 };
 }
 
 export function sequenceParams(successes: number): SequenceParams {

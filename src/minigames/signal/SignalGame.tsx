@@ -2,6 +2,85 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { MiniGameProgress, SignalParams } from '../../types';
 import type { MiniGameProps } from '../types';
 
+interface RotaryKnobProps {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  displayValue: string;
+  onChange: (val: number) => void;
+}
+
+function RotaryKnob({ label, value, min, max, step, displayValue, onChange }: RotaryKnobProps) {
+  const knobRef = useRef<HTMLDivElement | null>(null);
+  const isDragging = useRef(false);
+
+  // Convert value [min..max] to rotation angle in degrees [-135° to +135°]
+  const percentage = Math.max(0, Math.min(1, (value - min) / (max - min)));
+  const angle = -135 + percentage * 270;
+
+  const handlePointer = (clientX: number, clientY: number) => {
+    if (!knobRef.current) return;
+    const rect = knobRef.current.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    const rad = Math.atan2(clientY - centerY, clientX - centerX);
+    let deg = (rad * 180) / Math.PI + 90;
+    if (deg < -180) deg += 360;
+    if (deg > 180) deg -= 360;
+
+    const clampedDeg = Math.max(-135, Math.min(135, deg));
+    const newNorm = (clampedDeg - (-135)) / 270;
+    const rawVal = min + newNorm * (max - min);
+    const steppedVal = Math.round(rawVal / step) * step;
+    const clampedVal = Number(Math.max(min, Math.min(max, steppedVal)).toFixed(2));
+    onChange(clampedVal);
+  };
+
+  return (
+    <div className="flex flex-col items-center gap-1.5 p-2.5 rounded-lg border border-grid bg-panel-2/90 select-none shadow-sm">
+      <div className="flex justify-between w-full text-[11px] font-bold text-neon-cyan uppercase tracking-wider px-1">
+        <span>{label}</span>
+        <span className="font-mono text-neon-amber font-extrabold">{displayValue}</span>
+      </div>
+
+      <div
+        ref={knobRef}
+        className="relative h-20 w-20 rounded-full border-2 border-neon-cyan/70 bg-panel shadow-[0_0_15px_rgba(46,230,255,0.2)] cursor-grab active:cursor-grabbing touch-none flex items-center justify-center"
+        style={{ touchAction: 'none' }}
+        onPointerDown={(e) => {
+          e.preventDefault();
+          e.currentTarget.setPointerCapture(e.pointerId);
+          isDragging.current = true;
+          handlePointer(e.clientX, e.clientY);
+        }}
+        onPointerMove={(e) => {
+          if (!isDragging.current) return;
+          handlePointer(e.clientX, e.clientY);
+        }}
+        onPointerUp={() => { isDragging.current = false; }}
+        onPointerCancel={() => { isDragging.current = false; }}
+      >
+        {/* Outer Ring Ticks */}
+        <div className="absolute inset-1 rounded-full border border-dashed border-neon-cyan/30" />
+
+        {/* Rotating Dial Body */}
+        <div
+          className="relative h-14 w-14 rounded-full bg-gradient-to-br from-panel-2 to-abyss border border-neon-cyan/60 shadow-inner flex items-center justify-center transition-transform duration-75"
+          style={{ transform: `rotate(${angle}deg)` }}
+        >
+          {/* Tick Indicator */}
+          <div className="absolute top-1 h-3.5 w-1 rounded-full bg-neon-cyan shadow-[0_0_8px_var(--color-neon-cyan)]" />
+          {/* Center Cap */}
+          <div className="h-5 w-5 rounded-full border border-neon-cyan/50 bg-panel" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function SignalGame({
   params,
   onProgress,
@@ -200,7 +279,7 @@ export function SignalGame({
 
           <div className="rounded bg-panel-2 p-3 text-[11px] text-ink-dim leading-relaxed text-left space-y-2.5">
             <p>
-              🎛️ <strong className="text-neon-magenta">Action :</strong> Ajustez les curseurs d'amplitude, fréquence et phase pour aligner l'onde cyan sur l'onde magenta.
+              🎛️ <strong className="text-neon-magenta">Action :</strong> Tournez les molettes d'amplitude, fréquence et phase pour aligner l'onde cyan sur l'onde magenta.
             </p>
             <p>
               ⏱ <strong className="text-neon-cyan">Objectif :</strong> Superposez les deux ondes et maintenez le signal verrouillé pendant <span className="text-neon-cyan font-bold">{params.holdTime}s</span>.
@@ -277,64 +356,45 @@ export function SignalGame({
         </div>
       </div>
 
-      {/* Controls Sliders */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 rounded-lg border border-grid bg-panel p-3">
-        {/* Slider 1: Amplitude */}
-        <div className="flex flex-col gap-1">
-          <div className="flex justify-between text-[11px] font-bold text-neon-cyan uppercase">
-            <span>Amplitude</span>
-            <span>{Math.round(amp * 100)}%</span>
-          </div>
-          <input
-            type="range"
-            min="0.1"
-            max="1.0"
-            step="0.05"
-            value={amp}
-            onChange={(e) => setAmp(parseFloat(e.target.value))}
-            className="w-full accent-neon-cyan cursor-pointer h-2"
-          />
-        </div>
+      {/* Rotary Knobs Controls */}
+      <div className={`grid gap-3 rounded-lg border border-grid bg-panel p-3 ${
+        params.sliderCount === 2 ? 'grid-cols-2 max-w-md mx-auto w-full' : 'grid-cols-3'
+      }`}>
+        <RotaryKnob
+          label="Amplitude"
+          value={amp}
+          min={0.1}
+          max={1.0}
+          step={0.05}
+          displayValue={`${Math.round(amp * 100)}%`}
+          onChange={setAmp}
+        />
 
-        {/* Slider 2: Frequency */}
-        <div className="flex flex-col gap-1">
-          <div className="flex justify-between text-[11px] font-bold text-neon-cyan uppercase">
-            <span>Fréquence</span>
-            <span>{freq.toFixed(1)} Hz</span>
-          </div>
-          <input
-            type="range"
-            min="0.5"
-            max="3.0"
-            step="0.1"
-            value={freq}
-            onChange={(e) => setFreq(parseFloat(e.target.value))}
-            className="w-full accent-neon-cyan cursor-pointer h-2"
-          />
-        </div>
+        <RotaryKnob
+          label="Fréquence"
+          value={freq}
+          min={0.5}
+          max={3.0}
+          step={0.1}
+          displayValue={`${freq.toFixed(1)} Hz`}
+          onChange={setFreq}
+        />
 
-        {/* Slider 3: Phase */}
         {params.sliderCount === 3 && (
-          <div className="flex flex-col gap-1">
-            <div className="flex justify-between text-[11px] font-bold text-neon-cyan uppercase">
-              <span>Phase</span>
-              <span>{phase.toFixed(1)} rad</span>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="6.0"
-              step="0.1"
-              value={phase}
-              onChange={(e) => setPhase(parseFloat(e.target.value))}
-              className="w-full accent-neon-cyan cursor-pointer h-2"
-            />
-          </div>
+          <RotaryKnob
+            label="Phase"
+            value={phase}
+            min={0}
+            max={6.0}
+            step={0.1}
+            displayValue={`${phase.toFixed(1)} rad`}
+            onChange={setPhase}
+          />
         )}
       </div>
 
       <p className="text-center text-[11px] text-ink-dim">
-        Ajustez les curseurs pour superposer l'onde <span className="text-neon-cyan font-bold">cyan</span> sur l'onde <span className="text-neon-magenta font-bold">magenta</span>.
+        Faites tourner les molettes pour superposer l'onde <span className="text-neon-cyan font-bold">cyan</span> sur l'onde <span className="text-neon-magenta font-bold">magenta</span>.
       </p>
     </div>
   );

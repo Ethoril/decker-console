@@ -90,6 +90,10 @@ export function SiphonGame({
   const handlePacketClick = (id: number, type: 'data' | 'bonus' | 'ice') => {
     if (finished.current) return;
 
+    // pointerdown + touchstart se déclenchent tous deux sur écran tactile : on
+    // ignore le second événement une fois le paquet déjà consommé (anti double-score).
+    if (!packetsRef.current.some((p) => p.id === id)) return;
+
     // Remove packet from ref & state
     packetsRef.current = packetsRef.current.filter((p) => p.id !== id);
     setPackets(packetsRef.current);
@@ -222,25 +226,32 @@ export function SiphonGame({
           return (
             <button
               key={p.id}
-              className={`absolute flex items-center justify-center gap-1 rounded-md px-2 py-2 text-xs font-bold border transition-transform active:scale-90 cursor-pointer select-none ${
+              className={`absolute flex min-h-[46px] items-center justify-center gap-1.5 rounded-lg px-2 py-3 text-xs font-bold border transition-transform active:scale-90 cursor-pointer select-none touch-none ${
                 p.type === 'data'
-                  ? 'border-neon-green bg-neon-green/20 text-neon-green shadow-[0_0_12px_rgba(0,255,136,0.4)]'
+                  ? 'border-neon-green bg-neon-green/25 text-neon-green shadow-[0_0_14px_rgba(0,255,136,0.5)]'
                   : p.type === 'bonus'
-                    ? 'border-neon-amber bg-neon-amber/25 text-neon-amber shadow-[0_0_14px_rgba(255,180,0,0.5)] animate-pulse'
-                    : 'border-neon-red bg-neon-red/25 text-neon-red shadow-[0_0_12px_rgba(255,0,85,0.4)]'
+                    ? 'border-neon-amber bg-neon-amber/30 text-neon-amber shadow-[0_0_16px_rgba(255,180,0,0.6)] animate-pulse'
+                    : 'border-neon-red bg-neon-red/30 text-neon-red shadow-[0_0_14px_rgba(255,0,85,0.5)]'
               }`}
               style={{
                 left: `calc(${leftPercent}% + 4px)`,
                 width: `calc(${colWidthPercent}% - 8px)`,
                 top: `${p.y}%`,
+                touchAction: 'none',
               }}
               onPointerDown={(e) => {
                 e.preventDefault();
+                e.stopPropagation();
+                handlePacketClick(p.id, p.type);
+              }}
+              onTouchStart={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 handlePacketClick(p.id, p.type);
               }}
             >
-              <span>{p.type === 'data' ? '💾' : p.type === 'bonus' ? '⭐' : '💀'}</span>
-              <span className="uppercase text-[10px] tracking-wider font-extrabold">
+              <span className="text-sm">{p.type === 'data' ? '💾' : p.type === 'bonus' ? '⭐' : '💀'}</span>
+              <span className="uppercase text-[11px] tracking-wider font-black">
                 {p.type === 'data' ? 'DATA' : p.type === 'bonus' ? '+2 DATA' : 'GLACE'}
               </span>
             </button>

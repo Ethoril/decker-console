@@ -2,6 +2,25 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { MiniGameProgress, SequenceParams } from '../../types';
 import type { MiniGameProps } from '../types';
 
+const TILE_COLORS = [
+  { border: 'border-neon-cyan', bg: 'bg-neon-cyan/20', activeBg: 'bg-neon-cyan/60', shadow: 'shadow-[0_0_24px_var(--color-neon-cyan)]', text: 'text-neon-cyan', hex: '#2ee6ff' },
+  { border: 'border-neon-magenta', bg: 'bg-neon-magenta/20', activeBg: 'bg-neon-magenta/60', shadow: 'shadow-[0_0_24px_var(--color-neon-magenta)]', text: 'text-neon-magenta', hex: '#ff0080' },
+  { border: 'border-neon-green', bg: 'bg-neon-green/20', activeBg: 'bg-neon-green/60', shadow: 'shadow-[0_0_24px_var(--color-neon-green)]', text: 'text-neon-green', hex: '#00ff88' },
+  { border: 'border-neon-amber', bg: 'bg-neon-amber/20', activeBg: 'bg-neon-amber/60', shadow: 'shadow-[0_0_24px_var(--color-neon-amber)]', text: 'text-neon-amber', hex: '#ffb400' },
+  { border: 'border-blue-500', bg: 'bg-blue-500/20', activeBg: 'bg-blue-500/60', shadow: 'shadow-[0_0_24px_rgba(59,130,246,0.8)]', text: 'text-blue-400', hex: '#3b82f6' },
+  { border: 'border-purple-500', bg: 'bg-purple-500/20', activeBg: 'bg-purple-500/60', shadow: 'shadow-[0_0_24px_rgba(168,85,247,0.8)]', text: 'text-purple-400', hex: '#a855f7' },
+  { border: 'border-orange-500', bg: 'bg-orange-500/20', activeBg: 'bg-orange-500/60', shadow: 'shadow-[0_0_24px_rgba(249,115,22,0.8)]', text: 'text-orange-400', hex: '#f97316' },
+  { border: 'border-pink-500', bg: 'bg-pink-500/20', activeBg: 'bg-pink-500/60', shadow: 'shadow-[0_0_24px_rgba(236,72,153,0.8)]', text: 'text-pink-400', hex: '#ec4899' },
+  { border: 'border-lime-400', bg: 'bg-lime-400/20', activeBg: 'bg-lime-400/60', shadow: 'shadow-[0_0_24px_rgba(132,204,22,0.8)]', text: 'text-lime-400', hex: '#84cc16' },
+  { border: 'border-teal-400', bg: 'bg-teal-400/20', activeBg: 'bg-teal-400/60', shadow: 'shadow-[0_0_24px_rgba(20,184,166,0.8)]', text: 'text-teal-400', hex: '#14b8a6' },
+  { border: 'border-red-500', bg: 'bg-red-500/20', activeBg: 'bg-red-500/60', shadow: 'shadow-[0_0_24px_rgba(239,68,68,0.8)]', text: 'text-red-400', hex: '#ef4444' },
+  { border: 'border-indigo-400', bg: 'bg-indigo-400/20', activeBg: 'bg-indigo-400/60', shadow: 'shadow-[0_0_24px_rgba(99,102,241,0.8)]', text: 'text-indigo-400', hex: '#6366f1' },
+  { border: 'border-yellow-300', bg: 'bg-yellow-300/20', activeBg: 'bg-yellow-300/60', shadow: 'shadow-[0_0_24px_rgba(253,224,71,0.8)]', text: 'text-yellow-300', hex: '#fde047' },
+  { border: 'border-cyan-300', bg: 'bg-cyan-300/20', activeBg: 'bg-cyan-300/60', shadow: 'shadow-[0_0_24px_rgba(103,232,249,0.8)]', text: 'text-cyan-300', hex: '#67e8f9' },
+  { border: 'border-fuchsia-400', bg: 'bg-fuchsia-400/20', activeBg: 'bg-fuchsia-400/60', shadow: 'shadow-[0_0_24px_rgba(232,121,249,0.8)]', text: 'text-fuchsia-400', hex: '#e879f9' },
+  { border: 'border-emerald-400', bg: 'bg-emerald-400/20', activeBg: 'bg-emerald-400/60', shadow: 'shadow-[0_0_24px_rgba(52,211,153,0.8)]', text: 'text-emerald-400', hex: '#34d399' },
+];
+
 export function SequenceGame({
   params,
   onProgress,
@@ -30,7 +49,7 @@ export function SequenceGame({
   const demoTimeoutRef = useRef<number | null>(null);
   const replayTimeoutRef = useRef<number | null>(null);
 
-  // Clears every pending demo/replay timer so nothing fires after unmount or replay.
+  // Clears every pending demo/replay timer
   const clearDemoTimers = useCallback(() => {
     if (demoIntervalRef.current !== null) {
       window.clearInterval(demoIntervalRef.current);
@@ -46,14 +65,14 @@ export function SequenceGame({
     }
   }, []);
 
-  // Play demonstration sequence
+  // Play demonstration sequence cleanly without flicker
   const playDemo = useCallback(() => {
     clearDemoTimers();
     setPhase('demo');
     setUserStep(0);
     let step = 0;
 
-    demoIntervalRef.current = window.setInterval(() => {
+    const playNextStep = () => {
       if (step >= sequence.length) {
         clearDemoTimers();
         setActiveTile(null);
@@ -62,15 +81,22 @@ export function SequenceGame({
         return;
       }
 
-      setActiveTile(sequence[step]);
-      setActiveStatus('demo');
-      step++;
+      // Briefly clear tile to ensure a clean pulse even if consecutive tiles are identical
+      setActiveTile(null);
+      setActiveStatus(null);
 
       demoTimeoutRef.current = window.setTimeout(() => {
-        setActiveTile(null);
-        setActiveStatus(null);
-      }, params.displaySpeedMs * 0.7);
-    }, params.displaySpeedMs);
+        setActiveTile(sequence[step]);
+        setActiveStatus('demo');
+
+        demoTimeoutRef.current = window.setTimeout(() => {
+          step++;
+          playNextStep();
+        }, params.displaySpeedMs * 0.75);
+      }, 50);
+    };
+
+    playNextStep();
   }, [sequence, params.displaySpeedMs, clearDemoTimers]);
 
   useEffect(() => {
@@ -118,7 +144,7 @@ export function SequenceGame({
       window.setTimeout(() => {
         setActiveTile(null);
         setActiveStatus(null);
-      }, 300);
+      }, 350);
 
       if (nextErrors > params.maxErrors) {
         finished.current = true;
@@ -153,10 +179,10 @@ export function SequenceGame({
 
           <div className="rounded bg-panel-2 p-3 text-[11px] text-ink-dim leading-relaxed text-left space-y-2.5">
             <p>
-              👁️ <strong className="text-neon-cyan">Phase 1 :</strong> Observez la séquence lumineuse émise par le système.
+              👁️ <strong className="text-neon-cyan">Phase 1 :</strong> Observez la séquence de pavés de couleurs émise par le système.
             </p>
             <p>
-              🧠 <strong className="text-neon-magenta">Phase 2 :</strong> Reproduisez la séquence exacte en cliquant sur les pavés dans le même ordre.
+              🧠 <strong className="text-neon-magenta">Phase 2 :</strong> Reproduisez la séquence exacte en appuyant sur les pavés colorés dans le même ordre.
             </p>
             <p>
               ⚠ <strong className="text-neon-red">Menace :</strong> Répliquez <span className="text-neon-green font-bold">{params.sequenceLength}</span> pavés ({params.maxErrors} erreur(s) max).
@@ -185,7 +211,7 @@ export function SequenceGame({
               : 'border-neon-cyan/40 bg-neon-cyan/15 text-neon-cyan'
           }`}>
             <span className={`h-2 w-2 rounded-full ${phase === 'demo' ? 'bg-neon-amber animate-ping' : 'bg-neon-cyan'}`} />
-            {phase === 'demo' ? '👁️ OBSERVATION...' : `🧠 RÉPLICATION (${userStep}/${sequence.length})`}
+            {phase === 'demo' ? '👁️ OBSERVATION SÉQUENCE...' : `🧠 RÉPLICATION (${userStep}/${sequence.length})`}
           </span>
         </div>
 
@@ -197,20 +223,22 @@ export function SequenceGame({
 
       {/* Grid Container */}
       <div
-        className="mx-auto grid min-h-0 flex-1 aspect-square max-h-[calc(100vh-170px)] w-full max-w-[calc(100vh-170px)] gap-2 rounded-lg border border-grid bg-panel p-3 shadow-[0_0_25px_rgba(0,0,0,0.5)]"
+        className="mx-auto grid min-h-0 flex-1 aspect-square max-h-[calc(100vh-170px)] w-full max-w-[calc(100vh-170px)] gap-2.5 rounded-lg border border-grid bg-panel p-3 shadow-[0_0_25px_rgba(0,0,0,0.5)]"
         style={{ gridTemplateColumns: `repeat(${params.gridSize}, minmax(0, 1fr))` }}
       >
         {Array.from({ length: totalTiles }).map((_, index) => {
+          const colorConfig = TILE_COLORS[index % TILE_COLORS.length];
           const isActive = activeTile === index;
-          let tileStyle = 'border-grid/80 bg-panel-2 hover:border-neon-cyan/40';
+
+          let dynamicStyle = `${colorConfig.border} ${colorConfig.bg} hover:border-white/60`;
 
           if (isActive) {
             if (activeStatus === 'demo') {
-              tileStyle = 'border-neon-cyan bg-neon-cyan/40 shadow-[0_0_20px_var(--color-neon-cyan)] scale-98';
+              dynamicStyle = `${colorConfig.border} ${colorConfig.activeBg} ${colorConfig.shadow} scale-95 border-2 border-white`;
             } else if (activeStatus === 'hit') {
-              tileStyle = 'border-neon-green bg-neon-green/50 shadow-[0_0_20px_var(--color-neon-green)] scale-95';
+              dynamicStyle = `border-neon-green bg-neon-green/60 shadow-[0_0_25px_var(--color-neon-green)] scale-95 border-2 border-white`;
             } else if (activeStatus === 'miss') {
-              tileStyle = 'border-neon-red bg-neon-red/50 shadow-[0_0_20px_var(--color-neon-red)] animate-shake';
+              dynamicStyle = `border-neon-red bg-neon-red/70 shadow-[0_0_25px_var(--color-neon-red)] animate-shake border-2 border-white`;
             }
           }
 
@@ -218,15 +246,15 @@ export function SequenceGame({
             <button
               key={index}
               disabled={phase === 'demo'}
-              className={`relative flex items-center justify-center rounded-lg border transition-all duration-150 p-0 ${tileStyle} ${
-                phase === 'user' ? 'cursor-pointer active:scale-95' : 'cursor-wait'
+              className={`relative flex items-center justify-center rounded-xl border-2 transition-all duration-150 p-0 ${dynamicStyle} ${
+                phase === 'user' ? 'cursor-pointer active:scale-90' : 'cursor-wait'
               }`}
               onClick={() => handleTileClick(index)}
             >
-              <span className={`h-3 w-3 rounded-full transition-all ${
+              <span className={`h-4 w-4 rounded-full transition-all ${
                 isActive 
-                  ? 'bg-white shadow-[0_0_10px_white]' 
-                  : 'bg-ink-dim/30'
+                  ? 'bg-white shadow-[0_0_12px_white] scale-125' 
+                  : `${colorConfig.bg} border ${colorConfig.border}`
               }`} />
             </button>
           );
@@ -235,8 +263,8 @@ export function SequenceGame({
 
       <p className="text-center text-[11px] text-ink-dim">
         {phase === 'demo' 
-          ? 'Mémorisez l’ordre d’illumination des pavés...' 
-          : 'Cliquez sur les pavés dans le même ordre.'}
+          ? 'Mémorisez les couleurs et l’ordre des pavés...' 
+          : 'Appuyez sur les pavés colorés dans le même ordre.'}
       </p>
     </div>
   );
