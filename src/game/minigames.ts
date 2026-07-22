@@ -21,14 +21,11 @@ export const MINI_GAME_LABELS: Record<MiniGameKind, string> = {
   sequence: 'Matrice de Séquençage',
 };
 
-/** Garde le jeu thématique à 65 %, puis répartit le reste entre les autres variantes. */
-export function pickMiniGameKind(primary: MiniGameKind): MiniGameKind {
+/** Sélection auto : tirage uniforme parmi tous les mini-jeux (20 % chacun),
+ *  indépendant du type d'action. Le mini-jeu forcé par le MJ reste prioritaire. */
+export function pickMiniGameKind(): MiniGameKind {
   const allKinds: MiniGameKind[] = ['injection', 'overload', 'decryption', 'extraction', 'sequence'];
-  const variants = allKinds.filter((k) => k !== primary);
-  const roll = Math.random();
-  if (roll < 0.65) return primary;
-  const idx = Math.floor(((roll - 0.65) / 0.35) * variants.length);
-  return variants[Math.min(variants.length - 1, idx)];
+  return allKinds[Math.floor(Math.random() * allKinds.length)];
 }
 
 export function injectionParams(successes: number): InjectionParams {

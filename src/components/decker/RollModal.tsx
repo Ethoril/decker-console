@@ -158,7 +158,7 @@ export function RollModal({
         ...request.miniGame.context,
         rollSuccesses: successes,
       } as MiniGameContext;
-      const kind = request.forcedMinigame ?? pickMiniGameKind(request.miniGame.kind);
+      const kind = request.forcedMinigame ?? pickMiniGameKind();
       const game = createMiniGame(request.action, kind, context, difficultySuccesses);
       const record: RollRecord = {
         ts: Date.now(),
