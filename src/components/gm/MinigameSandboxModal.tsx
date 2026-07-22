@@ -7,7 +7,6 @@ import type {
   DecryptionParams,
   ExtractionParams,
   SequenceParams,
-  ShortCircuitParams,
 } from '../../types';
 import {
   MINI_GAME_LABELS,
@@ -16,14 +15,12 @@ import {
   decryptionParams,
   extractionParams,
   sequenceParams,
-  shortCircuitParams,
 } from '../../game/minigames';
 import { InjectionGame } from '../../minigames/injection/InjectionGame';
 import { OverloadGame } from '../../minigames/overload/OverloadGame';
 import { DecryptionGame } from '../../minigames/decryption/DecryptionGame';
 import { ExtractionGame } from '../../minigames/extraction/ExtractionGame';
 import { SequenceGame } from '../../minigames/sequence/SequenceGame';
-import { ShortCircuitGame } from '../../minigames/shortcircuit/ShortCircuitGame';
 
 interface MinigameSandboxModalProps {
   onClose: () => void;
@@ -61,8 +58,6 @@ export function MinigameSandboxModal({ onClose }: MinigameSandboxModalProps) {
         return extractionParams(successes);
       case 'sequence':
         return sequenceParams(successes);
-      case 'shortcircuit':
-        return shortCircuitParams(successes);
     }
   }, [kind, successes]);
 
@@ -252,25 +247,6 @@ export function MinigameSandboxModal({ onClose }: MinigameSandboxModalProps) {
                   </div>
                 </div>
               )}
-
-              {kind === 'shortcircuit' && (
-                <div className="grid grid-cols-3 gap-2 text-center text-xs font-mono">
-                  <div className="border border-grid/50 p-2 rounded bg-abyss">
-                    <span className="block text-ink-dim text-[8px] uppercase">Grille</span>
-                    <span className="text-neon-cyan font-bold">
-                      {(gameParams as ShortCircuitParams).gridSize} × {(gameParams as ShortCircuitParams).gridSize}
-                    </span>
-                  </div>
-                  <div className="border border-grid/50 p-2 rounded bg-abyss">
-                    <span className="block text-ink-dim text-[8px] uppercase">Bascules</span>
-                    <span className="text-neon-cyan font-bold">{(gameParams as ShortCircuitParams).scrambleMoves}</span>
-                  </div>
-                  <div className="border border-grid/50 p-2 rounded bg-abyss">
-                    <span className="block text-ink-dim text-[8px] uppercase">Temps</span>
-                    <span className="text-neon-cyan font-bold">{(gameParams as ShortCircuitParams).timeLimit}s</span>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
 
@@ -365,15 +341,6 @@ export function MinigameSandboxModal({ onClose }: MinigameSandboxModalProps) {
               <SequenceGame
                 key={gameKey}
                 params={gameParams as SequenceParams}
-                onProgress={handleProgress}
-                onResult={handleResult}
-              />
-            )}
-
-            {kind === 'shortcircuit' && (
-              <ShortCircuitGame
-                key={gameKey}
-                params={gameParams as ShortCircuitParams}
                 onProgress={handleProgress}
                 onResult={handleResult}
               />

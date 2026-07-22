@@ -11,7 +11,6 @@ import type {
   MiniGameState,
   OverloadParams,
   SequenceParams,
-  ShortCircuitParams,
 } from '../types';
 
 export const MINI_GAME_LABELS: Record<MiniGameKind, string> = {
@@ -20,12 +19,11 @@ export const MINI_GAME_LABELS: Record<MiniGameKind, string> = {
   decryption: 'Décryptage',
   extraction: 'Extraction d’urgence',
   sequence: 'Matrice de Séquençage',
-  shortcircuit: 'Court-circuit',
 };
 
 /** Garde le jeu thématique à 65 %, puis répartit le reste entre les autres variantes. */
 export function pickMiniGameKind(primary: MiniGameKind): MiniGameKind {
-  const allKinds: MiniGameKind[] = ['injection', 'overload', 'decryption', 'extraction', 'sequence', 'shortcircuit'];
+  const allKinds: MiniGameKind[] = ['injection', 'overload', 'decryption', 'extraction', 'sequence'];
   const variants = allKinds.filter((k) => k !== primary);
   const roll = Math.random();
   if (roll < 0.65) return primary;
@@ -68,13 +66,6 @@ export function sequenceParams(successes: number): SequenceParams {
   return { gridSize: 4, sequenceLength: 7, displaySpeedMs: 300, maxErrors: 0 };
 }
 
-export function shortCircuitParams(successes: number): ShortCircuitParams {
-  if (successes >= 4) return { gridSize: 3, scrambleMoves: 3, timeLimit: 40 };
-  if (successes >= 2) return { gridSize: 4, scrambleMoves: 5, timeLimit: 40 };
-  if (successes === 1) return { gridSize: 4, scrambleMoves: 8, timeLimit: 35 };
-  return { gridSize: 5, scrambleMoves: 12, timeLimit: 30 };
-}
-
 function paramsFor(kind: MiniGameKind, successes: number): MiniGameParams {
   switch (kind) {
     case 'injection': return injectionParams(successes);
@@ -82,7 +73,6 @@ function paramsFor(kind: MiniGameKind, successes: number): MiniGameParams {
     case 'decryption': return decryptionParams(successes);
     case 'extraction': return extractionParams(successes);
     case 'sequence': return sequenceParams(successes);
-    case 'shortcircuit': return shortCircuitParams(successes);
   }
 }
 
@@ -91,8 +81,7 @@ function totalFor(kind: MiniGameKind, params: MiniGameParams): number {
   if (kind === 'overload') return (params as OverloadParams).requiredHits;
   if (kind === 'decryption') return (params as DecryptionParams).gridSize ** 2;
   if (kind === 'extraction') return (params as ExtractionParams).gridSize ** 2;
-  if (kind === 'sequence') return (params as SequenceParams).sequenceLength;
-  return (params as ShortCircuitParams).gridSize ** 2;
+  return (params as SequenceParams).sequenceLength;
 }
 
 export function createMiniGame(

@@ -25,7 +25,6 @@ import type {
   PoolLine,
   RollRecord,
   SequenceParams,
-  ShortCircuitParams,
 } from '../../types';
 import { InjectionGame } from '../../minigames/injection/InjectionGame';
 import { MiniGameShell } from '../../minigames/MiniGameShell';
@@ -33,7 +32,6 @@ import { OverloadGame } from '../../minigames/overload/OverloadGame';
 import { DecryptionGame } from '../../minigames/decryption/DecryptionGame';
 import { ExtractionGame } from '../../minigames/extraction/ExtractionGame';
 import { SequenceGame } from '../../minigames/sequence/SequenceGame';
-import { ShortCircuitGame } from '../../minigames/shortcircuit/ShortCircuitGame';
 
 export interface RollRequest {
   /** Libellé du test, ex. « Hack (Corruption) — Serveur RH ». */
@@ -235,9 +233,6 @@ export function RollModal({
         break;
       case 'sequence':
         gameView = <SequenceGame params={activeGame.params as SequenceParams} {...common} />;
-        break;
-      case 'shortcircuit':
-        gameView = <ShortCircuitGame params={activeGame.params as ShortCircuitParams} {...common} />;
         break;
     }
     return (
