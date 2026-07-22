@@ -7,12 +7,19 @@ export function SignalGame({
   onProgress,
   onResult,
 }: MiniGameProps<SignalParams, MiniGameProgress>) {
-  // Generates random target waveform values once per game
+  // Generates target waveform values quantized to slider steps so exact alignment is always possible!
   const target = useMemo(() => {
+    const stepAmp = 0.05;
+    const stepFreq = 0.1;
+    const stepPhase = 0.1;
+    const ampSteps = 9; // 0.30 to 0.70
+    const freqSteps = 19; // 0.8 to 2.6
+    const phaseSteps = 60; // 0 to ~6.0
+
     return {
-      amplitude: 0.3 + Math.random() * 0.5,
-      frequency: 0.8 + Math.random() * 1.8,
-      phase: Math.random() * Math.PI * 2,
+      amplitude: Number((0.3 + Math.floor(Math.random() * ampSteps) * stepAmp).toFixed(2)),
+      frequency: Number((0.8 + Math.floor(Math.random() * freqSteps) * stepFreq).toFixed(2)),
+      phase: Number((Math.floor(Math.random() * phaseSteps) * stepPhase).toFixed(2)),
     };
   }, []);
 
@@ -23,13 +30,13 @@ export function SignalGame({
 
   const [seconds, setSeconds] = useState(params.timeLimit);
   const [holdProgress, setHoldProgress] = useState(0); // 0 to 1
+  const [matchScore, setMatchScore] = useState(0); // 0 to 100%
   const [showTutorial, setShowTutorial] = useState(true);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const finished = useRef(false);
   const holdTimeRef = useRef(0);
   const secondsRef = useRef(params.timeLimit);
-  const driftRef = useRef(0); // dérive de phase cumulée pour la cible mobile (rad)
 
   // Timer Countdown
   useEffect(() => {
@@ -59,9 +66,7 @@ export function SignalGame({
       const delta = (now - lastTime) / 1000;
       lastTime = now;
 
-      // Cible mobile : la phase de l'onde cible dérive lentement (~0.4 rad/s).
-      if (params.movingTarget) driftRef.current += delta * 0.4;
-      const targetPhase = target.phase + driftRef.current;
+      const targetPhase = target.phase;
 
       const canvas = canvasRef.current;
       if (canvas) {
@@ -129,18 +134,20 @@ export function SignalGame({
 
       // Calculate Match Error
       const ampErr = Math.abs(amp - target.amplitude);
-      const freqErr = Math.abs(freq - target.frequency) / 2.0;
-      const phaseNorm = (phase - targetPhase) % (Math.PI * 2);
-      const phaseErr = Math.min(
-        Math.abs(phaseNorm),
-        Math.abs(Math.PI * 2 - Math.abs(phaseNorm))
-      ) / Math.PI;
+      const freqErr = Math.abs(freq - target.frequency) / 2.5;
+      let phaseDiff = Math.abs(phase - targetPhase) % (Math.PI * 2);
+      if (phaseDiff > Math.PI) phaseDiff = Math.PI * 2 - phaseDiff;
+      const phaseErr = phaseDiff / Math.PI;
 
       const totalErr = params.sliderCount === 2 
         ? (ampErr + freqErr) / 2 
         : (ampErr + freqErr + phaseErr) / 3;
 
-      const isMatching = totalErr <= params.tolerance;
+      const currentScore = Math.max(0, Math.round((1 - totalErr) * 100));
+      setMatchScore(currentScore);
+
+      const tolerance = params.tolerance || 0.15;
+      const isMatching = totalErr <= tolerance;
 
       if (isMatching && !finished.current) {
         holdTimeRef.current += delta;
@@ -170,7 +177,7 @@ export function SignalGame({
     return () => cancelAnimationFrame(animationFrame);
   }, [amp, freq, phase, params, target, onProgress, onResult, showTutorial]);
 
-  const matchPercent = Math.round(holdProgress * 100);
+  const syncPercent = Math.round(holdProgress * 100);
 
   if (showTutorial) {
     return (
@@ -193,19 +200,14 @@ export function SignalGame({
 
           <div className="rounded bg-panel-2 p-3 text-[11px] text-ink-dim leading-relaxed text-left space-y-2.5">
             <p>
-              🎛️ <strong className="text-neon-magenta">Action :</strong> Ajustez les curseurs d'amplitude, fréquence et phase.
+              🎛️ <strong className="text-neon-magenta">Action :</strong> Ajustez les curseurs d'amplitude, fréquence et phase pour aligner l'onde cyan sur l'onde magenta.
             </p>
             <p>
-              ⏱ <strong className="text-neon-cyan">Objectif :</strong> Superposez l'onde cyan sur l'onde cible <span className="text-neon-magenta font-bold">magenta</span> et maintenez la synchronisation pendant <span className="text-neon-cyan font-bold">{params.holdTime}s</span>.
+              ⏱ <strong className="text-neon-cyan">Objectif :</strong> Superposez les deux ondes et maintenez le signal verrouillé pendant <span className="text-neon-cyan font-bold">{params.holdTime}s</span>.
             </p>
             <p>
               ⚠ <strong className="text-neon-red">Menace :</strong> Réussissez avant la fin du temps imparti (<span className="text-neon-red font-bold">{params.timeLimit}s</span>).
             </p>
-            {params.movingTarget && (
-              <p>
-                📡 <strong className="text-neon-amber">Instabilité :</strong> la signature cible <span className="text-neon-magenta font-bold">dérive en continu</span> — corrigez la phase sans relâche pour rester synchronisé.
-              </p>
-            )}
           </div>
 
           <button
@@ -220,36 +222,39 @@ export function SignalGame({
   }
 
   return (
-    <div className="mx-auto flex h-full max-w-2xl flex-col gap-4">
+    <div className="mx-auto flex h-full max-w-2xl flex-col gap-3">
       {/* Top HUD */}
-      <div className="flex items-center justify-between rounded-lg border border-grid bg-panel-2 p-3 text-xs shadow-md">
-        <div className="flex items-center gap-2">
-          <span className={`inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-[11px] font-bold uppercase border ${
-            holdProgress > 0
-              ? 'border-neon-green bg-neon-green/20 text-neon-green shadow-[0_0_10px_rgba(0,255,136,0.3)]'
-              : 'border-neon-cyan/40 bg-neon-cyan/15 text-neon-cyan'
+      <div className="flex flex-col gap-2 rounded-lg border border-grid bg-panel-2 p-3 shadow-md">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold uppercase border transition-all ${
+              holdProgress > 0
+                ? 'border-neon-green bg-neon-green/20 text-neon-green shadow-[0_0_12px_rgba(0,255,136,0.4)]'
+                : 'border-neon-cyan/40 bg-neon-cyan/15 text-neon-cyan'
+            }`}>
+              <span className={`h-2.5 w-2.5 rounded-full ${holdProgress > 0 ? 'bg-neon-green animate-ping' : 'bg-neon-cyan'}`} />
+              Alignement : {matchScore}% (Verrouillage : {syncPercent}%)
+            </span>
+          </div>
+
+          {/* Enlarge Timer Display */}
+          <div className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-sm sm:text-base font-black font-mono tracking-wider border-2 ${
+            seconds <= 6
+              ? 'border-neon-red bg-neon-red/25 text-neon-red animate-pulse shadow-[0_0_16px_rgba(255,0,85,0.6)]'
+              : 'border-neon-amber/70 bg-neon-amber/15 text-neon-amber shadow-[0_0_10px_rgba(255,180,0,0.3)]'
           }`}>
-            <span className={`h-2 w-2 rounded-full ${holdProgress > 0 ? 'bg-neon-green animate-ping' : 'bg-neon-cyan'}`} />
-            Sync : {matchPercent}%
-          </span>
+            <span className="text-base">⏱️</span>
+            <span>{seconds}s</span>
+          </div>
         </div>
 
-        <div className={`flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-bold tracking-wide border ${
-          seconds <= 6
-            ? 'border-neon-red bg-neon-red/20 text-neon-red animate-pulse shadow-[0_0_12px_rgba(255,0,85,0.4)]'
-            : 'border-neon-amber/50 bg-neon-amber/10 text-neon-amber shadow-[0_0_8px_rgba(255,180,0,0.2)]'
-        }`}>
-          <span>⏱️</span>
-          <span>{seconds}s</span>
+        {/* Progress Bar */}
+        <div className="h-2 w-full overflow-hidden rounded-full bg-panel border border-grid">
+          <div
+            className="h-full bg-gradient-to-r from-neon-cyan to-neon-green transition-all duration-100 shadow-[0_0_10px_var(--color-neon-green)]"
+            style={{ width: `${syncPercent}%` }}
+          />
         </div>
-      </div>
-
-      {/* Sync Lock Bar */}
-      <div className="h-2 w-full overflow-hidden rounded-full bg-panel border border-grid">
-        <div
-          className="h-full bg-gradient-to-r from-neon-cyan to-neon-green transition-all duration-100 shadow-[0_0_10px_var(--color-neon-green)]"
-          style={{ width: `${matchPercent}%` }}
-        />
       </div>
 
       {/* Oscilloscope Canvas */}
@@ -257,17 +262,17 @@ export function SignalGame({
         <canvas
           ref={canvasRef}
           width={600}
-          height={200}
-          className="h-48 w-full block"
+          height={180}
+          className="h-44 w-full block"
         />
 
         {/* Legend */}
-        <div className="absolute top-2 right-2 flex items-center gap-3 bg-panel/80 px-2 py-1 rounded text-[10px] border border-grid backdrop-blur-xs">
+        <div className="absolute top-2 right-2 flex items-center gap-3 bg-panel/90 px-2.5 py-1 rounded text-[10px] border border-grid backdrop-blur-xs">
           <span className="flex items-center gap-1 text-neon-magenta font-bold">
             <span className="h-2 w-2 rounded-full bg-neon-magenta" /> CIBLE
           </span>
           <span className="flex items-center gap-1 text-neon-cyan font-bold">
-            <span className="h-2 w-2 rounded-full bg-neon-cyan" /> SIGNAL DECKER
+            <span className="h-2 w-2 rounded-full bg-neon-cyan" /> DECKER
           </span>
         </div>
       </div>
@@ -276,7 +281,7 @@ export function SignalGame({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 rounded-lg border border-grid bg-panel p-3">
         {/* Slider 1: Amplitude */}
         <div className="flex flex-col gap-1">
-          <div className="flex justify-between text-[11px] font-semibold text-neon-cyan uppercase">
+          <div className="flex justify-between text-[11px] font-bold text-neon-cyan uppercase">
             <span>Amplitude</span>
             <span>{Math.round(amp * 100)}%</span>
           </div>
@@ -284,52 +289,52 @@ export function SignalGame({
             type="range"
             min="0.1"
             max="1.0"
-            step="0.01"
+            step="0.05"
             value={amp}
             onChange={(e) => setAmp(parseFloat(e.target.value))}
-            className="w-full accent-neon-cyan cursor-pointer"
+            className="w-full accent-neon-cyan cursor-pointer h-2"
           />
         </div>
 
         {/* Slider 2: Frequency */}
         <div className="flex flex-col gap-1">
-          <div className="flex justify-between text-[11px] font-semibold text-neon-cyan uppercase">
+          <div className="flex justify-between text-[11px] font-bold text-neon-cyan uppercase">
             <span>Fréquence</span>
-            <span>{freq.toFixed(2)} Hz</span>
+            <span>{freq.toFixed(1)} Hz</span>
           </div>
           <input
             type="range"
             min="0.5"
             max="3.0"
-            step="0.02"
+            step="0.1"
             value={freq}
             onChange={(e) => setFreq(parseFloat(e.target.value))}
-            className="w-full accent-neon-cyan cursor-pointer"
+            className="w-full accent-neon-cyan cursor-pointer h-2"
           />
         </div>
 
-        {/* Slider 3: Phase (if 3 sliders) */}
+        {/* Slider 3: Phase */}
         {params.sliderCount === 3 && (
           <div className="flex flex-col gap-1">
-            <div className="flex justify-between text-[11px] font-semibold text-neon-cyan uppercase">
+            <div className="flex justify-between text-[11px] font-bold text-neon-cyan uppercase">
               <span>Phase</span>
-              <span>{Math.round((phase / (Math.PI * 2)) * 360)}°</span>
+              <span>{phase.toFixed(1)} rad</span>
             </div>
             <input
               type="range"
               min="0"
-              max={Math.PI * 2}
-              step="0.05"
+              max="6.0"
+              step="0.1"
               value={phase}
               onChange={(e) => setPhase(parseFloat(e.target.value))}
-              className="w-full accent-neon-cyan cursor-pointer"
+              className="w-full accent-neon-cyan cursor-pointer h-2"
             />
           </div>
         )}
       </div>
 
       <p className="text-center text-[11px] text-ink-dim">
-        Superposez l'onde <span className="text-neon-cyan font-bold">cyan</span> sur l'onde <span className="text-neon-magenta font-bold">magenta</span> jusqu'à la synchronisation complète.
+        Ajustez les curseurs pour superposer l'onde <span className="text-neon-cyan font-bold">cyan</span> sur l'onde <span className="text-neon-magenta font-bold">magenta</span>.
       </p>
     </div>
   );

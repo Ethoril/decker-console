@@ -70,10 +70,10 @@ export function SiphonGame({
       }
 
       // Move packets downward
-      const speedPercentPerSec = (params.fallSpeed / 350) * 100;
+      const speedPercentPerSec = (params.fallSpeed / 300) * 100;
       const nextPackets = packetsRef.current
         .map((p) => ({ ...p, y: p.y + speedPercentPerSec * delta }))
-        .filter((p) => p.y <= 110); // remove when past bottom
+        .filter((p) => p.y <= 100); // remove only when fully reaching the bottom edge
 
       packetsRef.current = nextPackets;
       setPackets(nextPackets);
@@ -170,26 +170,27 @@ export function SiphonGame({
     <div className="mx-auto flex h-full max-w-2xl flex-col gap-3">
       {/* Top HUD */}
       <div className="flex flex-col gap-2 rounded-lg border border-grid bg-panel-2 p-3 shadow-md">
-        <div className="flex items-center justify-between text-xs">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1 rounded bg-neon-cyan/15 px-2 py-0.5 text-[11px] font-semibold text-neon-cyan border border-neon-cyan/30">
-              <span className="h-2 w-2 rounded-full bg-neon-cyan animate-pulse shadow-[0_0_6px_var(--color-neon-cyan)]" />
+            <span className="inline-flex items-center gap-1.5 rounded-lg bg-neon-cyan/15 px-3 py-1.5 text-xs font-bold text-neon-cyan border border-neon-cyan/40 shadow-[0_0_8px_rgba(46,230,255,0.2)]">
+              <span className="h-2.5 w-2.5 rounded-full bg-neon-cyan animate-pulse shadow-[0_0_6px_var(--color-neon-cyan)]" />
               Siphonné : {collected} / {params.requiredData}
             </span>
           </div>
 
-          <div className={`flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-bold tracking-wide border ${
+          {/* Enlarge Timer Display */}
+          <div className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-sm sm:text-base font-black font-mono tracking-wider border-2 ${
             seconds <= 6
-              ? 'border-neon-red bg-neon-red/20 text-neon-red animate-pulse shadow-[0_0_12px_rgba(255,0,85,0.4)]'
-              : 'border-neon-amber/50 bg-neon-amber/10 text-neon-amber shadow-[0_0_8px_rgba(255,180,0,0.2)]'
+              ? 'border-neon-red bg-neon-red/25 text-neon-red animate-pulse shadow-[0_0_16px_rgba(255,0,85,0.6)]'
+              : 'border-neon-amber/70 bg-neon-amber/15 text-neon-amber shadow-[0_0_10px_rgba(255,180,0,0.3)]'
           }`}>
-            <span>⏱️</span>
+            <span className="text-base">⏱️</span>
             <span>{seconds}s</span>
           </div>
         </div>
 
         {/* Progress Bar */}
-        <div className="h-1.5 w-full overflow-hidden rounded-full bg-panel border border-grid">
+        <div className="h-2 w-full overflow-hidden rounded-full bg-panel border border-grid">
           <div
             className="h-full bg-gradient-to-r from-neon-blue via-neon-cyan to-neon-green transition-all duration-200 shadow-[0_0_8px_var(--color-neon-cyan)]"
             style={{ width: `${progressPercent}%` }}
@@ -199,7 +200,7 @@ export function SiphonGame({
 
       {/* Lanes Area */}
       <div
-        className={`relative mx-auto grid h-[calc(100vh-170px)] max-h-[420px] w-full rounded-lg border bg-panel overflow-hidden transition-shadow ${
+        className={`relative mx-auto grid h-[calc(100vh-180px)] max-h-[440px] w-full rounded-lg border bg-panel overflow-hidden transition-shadow ${
           flash === 'ice'
             ? 'border-neon-red shadow-[0_0_30px_rgba(255,0,85,0.6)]'
             : flash === 'hit'
@@ -221,7 +222,7 @@ export function SiphonGame({
           return (
             <button
               key={p.id}
-              className={`absolute top-0 flex items-center justify-center gap-1 rounded-md px-2 py-1.5 text-xs font-bold border transition-transform active:scale-90 cursor-pointer select-none ${
+              className={`absolute flex items-center justify-center gap-1 rounded-md px-2 py-2 text-xs font-bold border transition-transform active:scale-90 cursor-pointer select-none ${
                 p.type === 'data'
                   ? 'border-neon-green bg-neon-green/20 text-neon-green shadow-[0_0_12px_rgba(0,255,136,0.4)]'
                   : p.type === 'bonus'
@@ -231,7 +232,7 @@ export function SiphonGame({
               style={{
                 left: `calc(${leftPercent}% + 4px)`,
                 width: `calc(${colWidthPercent}% - 8px)`,
-                transform: `translateY(${p.y * 3.8}px)`,
+                top: `${p.y}%`,
               }}
               onPointerDown={(e) => {
                 e.preventDefault();

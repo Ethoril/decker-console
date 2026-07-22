@@ -146,8 +146,6 @@ export interface SignalParams {
   holdTime: number;
   timeLimit: number;
   sliderCount: 2 | 3;
-  /** Si vrai, la phase de l'onde cible dérive lentement en continu (difficulté élevée). */
-  movingTarget: boolean;
 }
 
 export interface SequenceParams {

@@ -64,10 +64,10 @@ export function extractionParams(successes: number): ExtractionParams {
 }
 
 export function signalParams(successes: number): SignalParams {
-  if (successes >= 4) return { tolerance: 0.12, holdTime: 1.5, timeLimit: 30, sliderCount: 2, movingTarget: false };
-  if (successes >= 2) return { tolerance: 0.08, holdTime: 2.0, timeLimit: 25, sliderCount: 3, movingTarget: false };
-  if (successes === 1) return { tolerance: 0.05, holdTime: 2.2, timeLimit: 20, sliderCount: 3, movingTarget: true };
-  return { tolerance: 0.04, holdTime: 2.5, timeLimit: 18, sliderCount: 3, movingTarget: true };
+  if (successes >= 4) return { tolerance: 0.12, holdTime: 1.5, timeLimit: 30, sliderCount: 2 };
+  if (successes >= 2) return { tolerance: 0.08, holdTime: 2.0, timeLimit: 25, sliderCount: 3 };
+  if (successes === 1) return { tolerance: 0.05, holdTime: 2.2, timeLimit: 20, sliderCount: 3 };
+  return { tolerance: 0.04, holdTime: 2.5, timeLimit: 18, sliderCount: 3 };
 }
 
 export function sequenceParams(successes: number): SequenceParams {
