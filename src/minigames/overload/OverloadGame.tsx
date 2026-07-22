@@ -17,20 +17,24 @@ export function OverloadGame({
   const direction = useRef(1);
   const previous = useRef<number | null>(null);
   const finished = useRef(false);
+  const positionRef = useRef(0.08);
+  const lastInputTime = useRef(0);
 
   useEffect(() => {
     if (showTutorial) return;
     let frame = 0;
+    previous.current = null;
     const tick = (time: number) => {
       if (previous.current === null) previous.current = time;
       const delta = Math.min(0.04, (time - previous.current) / 1000);
       previous.current = time;
-      setPosition((value) => {
-        let next = value + direction.current * params.speed * (1 + hits * 0.12) * delta;
-        if (next >= 1) { next = 1; direction.current = -1; }
-        if (next <= 0) { next = 0; direction.current = 1; }
-        return next;
-      });
+      
+      let next = positionRef.current + direction.current * params.speed * (1 + hits * 0.12) * delta;
+      if (next >= 1) { next = 1; direction.current = -1; }
+      if (next <= 0) { next = 0; direction.current = 1; }
+      
+      positionRef.current = next;
+      setPosition(next);
       frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
@@ -39,7 +43,13 @@ export function OverloadGame({
 
   const stopNeedle = () => {
     if (finished.current) return;
-    const hit = Math.abs(position - 0.5) <= params.zoneWidth / 2;
+    const now = performance.now();
+    if (now - lastInputTime.current < 200) return;
+    lastInputTime.current = now;
+
+    // Use current real-time position from positionRef with a tiny generous buffer (+0.005)
+    const currentPos = positionRef.current;
+    const hit = Math.abs(currentPos - 0.5) <= (params.zoneWidth / 2) + 0.005;
     if (hit) {
       const nextHits = hits + 1;
       setHits(nextHits);
@@ -76,6 +86,23 @@ export function OverloadGame({
     window.setTimeout(() => setFlash(null), 220);
   };
 
+  const stopNeedleRef = useRef(stopNeedle);
+  stopNeedleRef.current = stopNeedle;
+
+  useEffect(() => {
+    if (showTutorial) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space' || e.code === 'Enter') {
+        e.preventDefault();
+        stopNeedleRef.current();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showTutorial]);
+
   const left = 50 - params.zoneWidth * 50;
 
   if (showTutorial) {
@@ -99,7 +126,7 @@ export function OverloadGame({
 
           <div className="rounded bg-panel-2 p-3 text-[11px] text-ink-dim leading-relaxed text-left space-y-2">
             <p>
-              ⚡ <strong className="text-neon-magenta">Action :</strong> Touchez ou cliquez sur le bouton "COUPER LE FLUX" lorsque l'aiguille se trouve dans la zone verte.
+              ⚡ <strong className="text-neon-magenta">Action :</strong> Appuyez sur <span className="text-neon-cyan font-bold">ESPACE</span>, <span className="text-neon-cyan font-bold">ENTRÉE</span> ou cliquez sur le bouton lorsque l'aiguille se trouve dans la zone verte.
             </p>
             <p>
               ⏱ <strong className="text-neon-cyan">Objectif :</strong> Stabilisez le flux réseau en réussissant <span className="text-neon-cyan font-bold">{params.requiredHits}</span> paliers. La vitesse de l'aiguille augmente après chaque réussite !
@@ -130,13 +157,17 @@ export function OverloadGame({
       </div>
 
       <div
-        className={`relative h-24 w-full overflow-hidden rounded border bg-panel-2 ${
+        className={`relative h-24 w-full overflow-hidden rounded border bg-panel-2 cursor-pointer select-none ${
           flash === 'hit'
             ? 'border-neon-green shadow-[0_0_24px_var(--color-neon-green)]'
             : flash === 'miss'
               ? 'border-neon-red shadow-[0_0_24px_var(--color-neon-red)]'
               : 'border-grid'
         }`}
+        onPointerDown={(e) => {
+          e.preventDefault();
+          stopNeedle();
+        }}
       >
         <div
           className="absolute inset-y-0 bg-neon-green/20 shadow-[0_0_24px_var(--color-neon-green)]"
@@ -149,8 +180,15 @@ export function OverloadGame({
         />
       </div>
 
-      <button className="btn btn-cyan min-h-16 w-full max-w-md text-lg" onClick={stopNeedle}>
-        COUPER LE FLUX
+      <button
+        type="button"
+        className="btn btn-cyan min-h-16 w-full max-w-md text-lg cursor-pointer select-none"
+        onPointerDown={(e) => {
+          e.preventDefault();
+          stopNeedle();
+        }}
+      >
+        COUPER LE FLUX <span className="text-xs opacity-75 font-normal ml-2">(ESPACE)</span>
       </button>
       <p className="max-w-md text-center text-[11px] leading-5 text-ink-dim">
         Arrêtez l’aiguille dans la zone verte. Chaque raté inflige 1 dégât ; deux ratés
@@ -159,3 +197,4 @@ export function OverloadGame({
     </div>
   );
 }
+

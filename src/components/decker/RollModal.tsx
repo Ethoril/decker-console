@@ -24,12 +24,18 @@ import type {
   OverloadParams,
   PoolLine,
   RollRecord,
+  SequenceParams,
+  SignalParams,
+  SiphonParams,
 } from '../../types';
 import { InjectionGame } from '../../minigames/injection/InjectionGame';
 import { MiniGameShell } from '../../minigames/MiniGameShell';
 import { OverloadGame } from '../../minigames/overload/OverloadGame';
 import { DecryptionGame } from '../../minigames/decryption/DecryptionGame';
 import { ExtractionGame } from '../../minigames/extraction/ExtractionGame';
+import { SignalGame } from '../../minigames/signal/SignalGame';
+import { SequenceGame } from '../../minigames/sequence/SequenceGame';
+import { SiphonGame } from '../../minigames/siphon/SiphonGame';
 
 export interface RollRequest {
   /** Libellé du test, ex. « Hack (Corruption) — Serveur RH ». */
@@ -228,6 +234,15 @@ export function RollModal({
         break;
       case 'extraction':
         gameView = <ExtractionGame params={activeGame.params as ExtractionParams} {...common} />;
+        break;
+      case 'signal':
+        gameView = <SignalGame params={activeGame.params as SignalParams} {...common} />;
+        break;
+      case 'sequence':
+        gameView = <SequenceGame params={activeGame.params as SequenceParams} {...common} />;
+        break;
+      case 'siphon':
+        gameView = <SiphonGame params={activeGame.params as SiphonParams} {...common} />;
         break;
     }
     return (

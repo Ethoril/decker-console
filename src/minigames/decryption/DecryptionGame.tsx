@@ -121,6 +121,8 @@ export function DecryptionGame({
     });
   };
 
+  const percentConnected = Math.round((connected.size / tiles.length) * 100);
+
   if (showTutorial) {
     return (
       <div className="mx-auto flex h-full max-w-md flex-col justify-center gap-4 text-center p-4">
@@ -140,15 +142,15 @@ export function DecryptionGame({
             Le fichier recherché (Paydata) est protégé par un verrouillage de flux de circuit fragmenté.
           </p>
 
-          <div className="rounded bg-panel-2 p-3 text-[11px] text-ink-dim leading-relaxed text-left space-y-2">
+          <div className="rounded bg-panel-2 p-3 text-[11px] text-ink-dim leading-relaxed text-left space-y-2.5">
             <p>
               ⚡ <strong className="text-neon-magenta">Action :</strong> Touchez ou cliquez sur les segments de circuit pour les faire pivoter.
             </p>
             <p>
-              ⏱ <strong className="text-neon-cyan">Objectif :</strong> Reliez l'entrée <span className="text-neon-green font-bold">IN</span> à la sortie <span className="text-neon-magenta font-bold">OUT</span> pour alimenter et décrypter le circuit complet.
+              ⏱ <strong className="text-neon-cyan">Objectif :</strong> Reliez l'entrée <span className="inline-flex items-center gap-1 rounded bg-neon-green/20 px-1.5 py-0.5 text-[10px] font-bold text-neon-green border border-neon-green/40 shadow-[0_0_8px_rgba(0,255,136,0.3)]">⚡ IN</span> à la sortie <span className="inline-flex items-center gap-1 rounded bg-neon-magenta/20 px-1.5 py-0.5 text-[10px] font-bold text-neon-magenta border border-neon-magenta/40 shadow-[0_0_8px_rgba(255,0,128,0.3)]">💾 OUT</span> pour alimenter et décrypter le circuit complet.
             </p>
             <p>
-              ⚠ <strong className="text-neon-red">Menace :</strong> Vous devez terminer la connexion avant la fin du chronomètre (<span className="text-neon-red font-bold">{params.timeLimit}s</span>).
+              ⚠ <strong className="text-neon-red">Menace :</strong> Vous devez terminer la connexion avant la fin du chronomètre (<span className="text-neon-red font-bold">{params.timeLimit}s</span> sur grille {params.gridSize}×{params.gridSize}).
             </p>
           </div>
 
@@ -165,41 +167,130 @@ export function DecryptionGame({
 
   return (
     <div className="mx-auto flex h-full max-w-2xl flex-col gap-3">
-      <div className="flex items-center justify-between text-xs">
-        <span className="text-neon-cyan">Circuit alimenté : {connected.size}/{tiles.length}</span>
-        <span className={seconds <= 8 ? 'pulse-alert text-neon-red' : 'text-neon-amber'}>
-          {seconds}s
-        </span>
+      {/* Top HUD */}
+      <div className="flex flex-col gap-2 rounded-lg border border-grid bg-panel-2 p-3 shadow-md">
+        <div className="flex items-center justify-between text-xs">
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1 rounded bg-neon-cyan/15 px-2 py-0.5 text-[11px] font-semibold text-neon-cyan border border-neon-cyan/30">
+              <span className="h-2 w-2 rounded-full bg-neon-cyan animate-pulse shadow-[0_0_6px_var(--color-neon-cyan)]" />
+              {connected.size} / {tiles.length} nœuds
+            </span>
+            <span className="text-[10px] tracking-wider text-ink-dim uppercase">
+              ({percentConnected}%)
+            </span>
+          </div>
+
+          <div className={`flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-bold tracking-wide border ${
+            seconds <= 8 
+              ? 'border-neon-red bg-neon-red/20 text-neon-red animate-pulse shadow-[0_0_12px_rgba(255,0,85,0.4)]' 
+              : 'border-neon-amber/50 bg-neon-amber/10 text-neon-amber shadow-[0_0_8px_rgba(255,180,0,0.2)]'
+          }`}>
+            <span>⏱️</span>
+            <span>{seconds}s</span>
+          </div>
+        </div>
+
+        {/* Progress Bar */}
+        <div className="h-1.5 w-full overflow-hidden rounded-full bg-panel border border-grid">
+          <div 
+            className="h-full bg-gradient-to-r from-neon-blue via-neon-cyan to-neon-green transition-all duration-300 shadow-[0_0_8px_var(--color-neon-cyan)]"
+            style={{ width: `${percentConnected}%` }}
+          />
+        </div>
       </div>
+
+      {/* Grid Container */}
       <div
-        className="mx-auto grid min-h-0 flex-1 aspect-square max-h-[calc(100vh-150px)] w-full max-w-[calc(100vh-150px)] gap-1 rounded border border-grid bg-panel p-2"
+        className="mx-auto grid min-h-0 flex-1 aspect-square max-h-[calc(100vh-170px)] w-full max-w-[calc(100vh-170px)] gap-1.5 rounded-lg border border-grid bg-panel p-2.5 shadow-[0_0_25px_rgba(0,0,0,0.5)]"
         style={{ gridTemplateColumns: `repeat(${params.gridSize}, minmax(0, 1fr))` }}
       >
         {tiles.map((mask, index) => {
           const powered = connected.has(index);
+          const isEntry = index === puzzle.entry;
+          const isExit = index === puzzle.exit;
+
           return (
             <button
               key={index}
-              className={`relative min-h-0 overflow-hidden rounded border p-0 ${
-                powered ? 'border-neon-cyan/50 bg-neon-cyan/10' : 'border-grid bg-panel-2'
+              className={`relative min-h-0 overflow-hidden rounded-md border transition-all duration-150 active:scale-95 cursor-pointer select-none p-0 ${
+                powered 
+                  ? 'border-neon-cyan/70 bg-neon-cyan/15 shadow-[0_0_12px_rgba(46,230,255,0.25)]' 
+                  : 'border-grid/80 bg-panel-2 hover:border-neon-cyan/40 hover:bg-panel-2/80'
               }`}
               aria-label={`Tourner le segment ${index + 1}`}
               onClick={() => turn(index)}
             >
-              <span className={`absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full ${powered ? 'bg-neon-cyan' : 'bg-ink-dim'}`} />
-              {(mask & N) !== 0 && <span className={`absolute left-1/2 top-0 h-1/2 w-1 -translate-x-1/2 ${powered ? 'bg-neon-cyan' : 'bg-ink-dim'}`} />}
-              {(mask & E) !== 0 && <span className={`absolute left-1/2 top-1/2 h-1 w-1/2 -translate-y-1/2 ${powered ? 'bg-neon-cyan' : 'bg-ink-dim'}`} />}
-              {(mask & S) !== 0 && <span className={`absolute bottom-0 left-1/2 h-1/2 w-1 -translate-x-1/2 ${powered ? 'bg-neon-cyan' : 'bg-ink-dim'}`} />}
-              {(mask & W) !== 0 && <span className={`absolute left-0 top-1/2 h-1 w-1/2 -translate-y-1/2 ${powered ? 'bg-neon-cyan' : 'bg-ink-dim'}`} />}
-              {index === puzzle.entry && <span className="absolute left-0 top-0 text-[8px] text-neon-green">IN</span>}
-              {index === puzzle.exit && <span className="absolute bottom-0 right-0 text-[8px] text-neon-magenta">OUT</span>}
+              {/* Lines */}
+              {(mask & N) !== 0 && (
+                <span 
+                  className={`absolute left-1/2 top-0 h-1/2 -translate-x-1/2 transition-colors duration-200 ${
+                    powered 
+                      ? 'w-1.5 bg-neon-cyan shadow-[0_0_8px_var(--color-neon-cyan)]' 
+                      : 'w-1 bg-ink-dim/40'
+                  }`} 
+                />
+              )}
+              {(mask & E) !== 0 && (
+                <span 
+                  className={`absolute left-1/2 top-1/2 w-1/2 -translate-y-1/2 transition-colors duration-200 ${
+                    powered 
+                      ? 'h-1.5 bg-neon-cyan shadow-[0_0_8px_var(--color-neon-cyan)]' 
+                      : 'h-1 bg-ink-dim/40'
+                  }`} 
+                />
+              )}
+              {(mask & S) !== 0 && (
+                <span 
+                  className={`absolute bottom-0 left-1/2 h-1/2 -translate-x-1/2 transition-colors duration-200 ${
+                    powered 
+                      ? 'w-1.5 bg-neon-cyan shadow-[0_0_8px_var(--color-neon-cyan)]' 
+                      : 'w-1 bg-ink-dim/40'
+                  }`} 
+                />
+              )}
+              {(mask & W) !== 0 && (
+                <span 
+                  className={`absolute left-0 top-1/2 w-1/2 -translate-y-1/2 transition-colors duration-200 ${
+                    powered 
+                      ? 'h-1.5 bg-neon-cyan shadow-[0_0_8px_var(--color-neon-cyan)]' 
+                      : 'h-1 bg-ink-dim/40'
+                  }`} 
+                />
+              )}
+
+              {/* Center Junction Node */}
+              <span 
+                className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full transition-all duration-200 ${
+                  powered 
+                    ? 'h-3 w-3 bg-neon-cyan shadow-[0_0_10px_var(--color-neon-cyan)]' 
+                    : 'h-2 w-2 bg-ink-dim/50'
+                }`} 
+              />
+
+              {/* Entry Node Badge (IN) */}
+              {isEntry && (
+                <div className="absolute left-0.5 top-0.5 z-10 flex items-center gap-0.5 rounded bg-panel-2/90 px-1 py-0.5 text-[9px] font-extrabold tracking-wider text-neon-green border border-neon-green/60 shadow-[0_0_8px_rgba(0,255,136,0.4)] backdrop-blur-xs">
+                  <span>⚡</span>
+                  <span>IN</span>
+                </div>
+              )}
+
+              {/* Exit Node Badge (OUT) */}
+              {isExit && (
+                <div className="absolute bottom-0.5 right-0.5 z-10 flex items-center gap-0.5 rounded bg-panel-2/90 px-1 py-0.5 text-[9px] font-extrabold tracking-wider text-neon-magenta border border-neon-magenta/60 shadow-[0_0_8px_rgba(255,0,128,0.4)] backdrop-blur-xs">
+                  <span>💾</span>
+                  <span>OUT</span>
+                </div>
+              )}
             </button>
           );
         })}
       </div>
-      <p className="text-center text-[10px] text-ink-dim">
-        Touchez les segments pour relier IN à OUT avant la fin du chrono.
+
+      <p className="text-center text-[11px] leading-relaxed text-ink-dim">
+        Pivotez les segments de circuit pour relier la source <span className="text-neon-green font-bold">⚡ IN</span> au serveur <span className="text-neon-magenta font-bold">💾 OUT</span>.
       </p>
     </div>
   );
 }
+

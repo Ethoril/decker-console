@@ -113,7 +113,10 @@ export type MiniGameKind =
   | 'injection'
   | 'overload'
   | 'decryption'
-  | 'extraction';
+  | 'extraction'
+  | 'signal'
+  | 'sequence'
+  | 'siphon';
 export type MiniGameStatus = 'active' | 'success' | 'failure';
 
 export interface InjectionParams {
@@ -138,11 +141,37 @@ export interface ExtractionParams {
   timeLimit: number;
 }
 
+export interface SignalParams {
+  tolerance: number;
+  holdTime: number;
+  timeLimit: number;
+  sliderCount: 2 | 3;
+  /** Si vrai, la phase de l'onde cible dérive lentement en continu (difficulté élevée). */
+  movingTarget: boolean;
+}
+
+export interface SequenceParams {
+  gridSize: 3 | 4;
+  sequenceLength: number;
+  displaySpeedMs: number;
+  maxErrors: number;
+}
+
+export interface SiphonParams {
+  columns: 3 | 4;
+  requiredData: number;
+  fallSpeed: number;
+  timeLimit: number;
+}
+
 export type MiniGameParams =
   | InjectionParams
   | OverloadParams
   | DecryptionParams
-  | ExtractionParams;
+  | ExtractionParams
+  | SignalParams
+  | SequenceParams
+  | SiphonParams;
 
 export interface MiniGameProgress {
   label: string;

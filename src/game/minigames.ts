@@ -10,6 +10,9 @@ import type {
   MiniGameParams,
   MiniGameState,
   OverloadParams,
+  SequenceParams,
+  SignalParams,
+  SiphonParams,
 } from '../types';
 
 export const MINI_GAME_LABELS: Record<MiniGameKind, string> = {
@@ -17,20 +20,19 @@ export const MINI_GAME_LABELS: Record<MiniGameKind, string> = {
   overload: 'Surcharge',
   decryption: 'Décryptage',
   extraction: 'Extraction d’urgence',
+  signal: 'Analyse de Signal',
+  sequence: 'Matrice de Séquençage',
+  siphon: 'Siphon de Flux',
 };
 
-/** Garde le jeu thématique à 65 %, puis répartit le reste entre 3 variantes. */
+/** Garde le jeu thématique à 65 %, puis répartit le reste entre les autres variantes. */
 export function pickMiniGameKind(primary: MiniGameKind): MiniGameKind {
-  const alternatives: Record<MiniGameKind, MiniGameKind[]> = {
-    injection: ['overload', 'decryption', 'extraction'],
-    overload: ['injection', 'decryption', 'extraction'],
-    decryption: ['injection', 'overload', 'extraction'],
-    extraction: ['injection', 'overload', 'decryption'],
-  };
+  const allKinds: MiniGameKind[] = ['injection', 'overload', 'decryption', 'extraction', 'signal', 'sequence', 'siphon'];
+  const variants = allKinds.filter((k) => k !== primary);
   const roll = Math.random();
   if (roll < 0.65) return primary;
-  const variants = alternatives[primary];
-  return variants[Math.min(2, Math.floor(((roll - 0.65) / 0.35) * 3))];
+  const idx = Math.floor(((roll - 0.65) / 0.35) * variants.length);
+  return variants[Math.min(variants.length - 1, idx)];
 }
 
 export function injectionParams(successes: number): InjectionParams {
@@ -48,10 +50,10 @@ export function overloadParams(successes: number): OverloadParams {
 }
 
 export function decryptionParams(successes: number): DecryptionParams {
-  if (successes >= 4) return { gridSize: 4, timeLimit: 40 };
-  if (successes >= 2) return { gridSize: 5, timeLimit: 34 };
-  if (successes === 1) return { gridSize: 5, timeLimit: 26 };
-  return { gridSize: 6, timeLimit: 20 };
+  if (successes >= 4) return { gridSize: 5, timeLimit: 35 };
+  if (successes >= 2) return { gridSize: 6, timeLimit: 30 };
+  if (successes === 1) return { gridSize: 6, timeLimit: 24 };
+  return { gridSize: 7, timeLimit: 22 };
 }
 
 export function extractionParams(successes: number): ExtractionParams {
@@ -61,12 +63,36 @@ export function extractionParams(successes: number): ExtractionParams {
   return { gridSize: 14, timeLimit: 12 };
 }
 
+export function signalParams(successes: number): SignalParams {
+  if (successes >= 4) return { tolerance: 0.12, holdTime: 1.5, timeLimit: 30, sliderCount: 2, movingTarget: false };
+  if (successes >= 2) return { tolerance: 0.08, holdTime: 2.0, timeLimit: 25, sliderCount: 3, movingTarget: false };
+  if (successes === 1) return { tolerance: 0.05, holdTime: 2.2, timeLimit: 20, sliderCount: 3, movingTarget: true };
+  return { tolerance: 0.04, holdTime: 2.5, timeLimit: 18, sliderCount: 3, movingTarget: true };
+}
+
+export function sequenceParams(successes: number): SequenceParams {
+  if (successes >= 4) return { gridSize: 3, sequenceLength: 4, displaySpeedMs: 550, maxErrors: 2 };
+  if (successes >= 2) return { gridSize: 3, sequenceLength: 5, displaySpeedMs: 450, maxErrors: 1 };
+  if (successes === 1) return { gridSize: 4, sequenceLength: 6, displaySpeedMs: 380, maxErrors: 1 };
+  return { gridSize: 4, sequenceLength: 7, displaySpeedMs: 300, maxErrors: 0 };
+}
+
+export function siphonParams(successes: number): SiphonParams {
+  if (successes >= 4) return { columns: 3, requiredData: 8, fallSpeed: 160, timeLimit: 25 };
+  if (successes >= 2) return { columns: 3, requiredData: 12, fallSpeed: 210, timeLimit: 22 };
+  if (successes === 1) return { columns: 4, requiredData: 15, fallSpeed: 260, timeLimit: 20 };
+  return { columns: 4, requiredData: 18, fallSpeed: 310, timeLimit: 18 };
+}
+
 function paramsFor(kind: MiniGameKind, successes: number): MiniGameParams {
   switch (kind) {
     case 'injection': return injectionParams(successes);
     case 'overload': return overloadParams(successes);
     case 'decryption': return decryptionParams(successes);
     case 'extraction': return extractionParams(successes);
+    case 'signal': return signalParams(successes);
+    case 'sequence': return sequenceParams(successes);
+    case 'siphon': return siphonParams(successes);
   }
 }
 
@@ -74,7 +100,10 @@ function totalFor(kind: MiniGameKind, params: MiniGameParams): number {
   if (kind === 'injection') return (params as InjectionParams).maxAttempts;
   if (kind === 'overload') return (params as OverloadParams).requiredHits;
   if (kind === 'decryption') return (params as DecryptionParams).gridSize ** 2;
-  return (params as ExtractionParams).gridSize ** 2;
+  if (kind === 'extraction') return (params as ExtractionParams).gridSize ** 2;
+  if (kind === 'signal') return 100;
+  if (kind === 'sequence') return (params as SequenceParams).sequenceLength;
+  return (params as SiphonParams).requiredData;
 }
 
 export function createMiniGame(
